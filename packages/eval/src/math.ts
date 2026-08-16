@@ -30,30 +30,38 @@ const BETACF_MAXIT = 200
 const BETACF_EPS = 3e-14
 const BETACF_FPMIN = 1e-300
 
+/**
+ * Clamp a value away from zero to prevent reciprocal underflow/overflow in the
+ * continued-fraction evaluation. Extracted so the defensive branch is directly
+ * testable (it only triggers at double-precision underflow boundaries).
+ */
+export function underflowGuard(x: number, min: number = BETACF_FPMIN): number {
+  return Math.abs(x) < min ? min : x
+}
+
 function betacf(a: number, b: number, x: number): number {
   const qab = a + b
   const qap = a + 1
   const qam = a - 1
   let c = 1
-  let d = 1 - (qab * x) / qap
-  if (Math.abs(d) < BETACF_FPMIN) d = BETACF_FPMIN
+  let d = underflowGuard(1 - (qab * x) / qap)
   d = 1 / d
   let h = d
   for (let m = 1; m <= BETACF_MAXIT; m++) {
     const m2 = 2 * m
     let aa = (m * (b - m) * x) / ((qam + m2) * (a + m2))
     d = 1 + aa * d
-    if (Math.abs(d) < BETACF_FPMIN) d = BETACF_FPMIN
+    d = underflowGuard(d)
     c = 1 + aa / c
-    if (Math.abs(c) < BETACF_FPMIN) c = BETACF_FPMIN
+    c = underflowGuard(c)
     d = 1 / d
     h *= d * c
 
     aa = -((a + m) * (qab + m) * x) / ((a + m2) * (qap + m2))
     d = 1 + aa * d
-    if (Math.abs(d) < BETACF_FPMIN) d = BETACF_FPMIN
+    d = underflowGuard(d)
     c = 1 + aa / c
-    if (Math.abs(c) < BETACF_FPMIN) c = BETACF_FPMIN
+    c = underflowGuard(c)
     d = 1 / d
     const del = d * c
     h *= del

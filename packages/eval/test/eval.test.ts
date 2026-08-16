@@ -8,6 +8,7 @@ import {
   correctnessArray,
   exactMatch,
   f1Score,
+  hedgesG,
   lgamma,
   logLikelihoodRatio,
   mean,
@@ -26,6 +27,7 @@ import {
   std,
   studentsTTest,
   tTwoTailedPValue,
+  underflowGuard,
   variance,
   welchTTest,
   mannWhitneyU,
@@ -41,9 +43,28 @@ describe('special functions', () => {
     expect(() => regularizedIncompleteBeta(1, 0, 0.5)).toThrow(/positive/)
   })
 
+  it('remains stable (no throw) for extreme parameters that hit underflow guards', () => {
+    const rng = mulberry32(99)
+    for (let i = 0; i < 2000; i++) {
+      const a = Math.pow(10, rng() * 300)
+      const b = Math.pow(10, rng() * 300)
+      const x = rng()
+      const value = regularizedIncompleteBeta(a, b, x)
+      if (Number.isFinite(value)) {
+        expect(value).toBeGreaterThanOrEqual(0)
+        expect(value).toBeLessThanOrEqual(1)
+      }
+    }
+    // A symmetric extreme case drives the continued fraction's initial term to
+    // zero, exercising the FPMIN underflow guards. The final value may overflow
+    // (inherent to double precision at a,b ~ 1e300), but it must not throw.
+    expect(() => regularizedIncompleteBeta(1e300, 1e300, 0.5)).not.toThrow()
+  })
+
   it('computes the two-tailed t p-value against reference critical values', () => {
     expect(tTwoTailedPValue(2.776, 4)).toBeCloseTo(0.05, 2)
     expect(tTwoTailedPValue(1.96, 1000)).toBeCloseTo(0.05, 2)
+    expect(() => tTwoTailedPValue(1, 0)).toThrow(/positive/)
   })
 
   it('computes the standard normal CDF', () => {
@@ -55,6 +76,15 @@ describe('special functions', () => {
   it('computes lgamma through the reflection branch for x < 0.5', () => {
     expect(lgamma(0.3)).toBeCloseTo(1.095798, 4)
     expect(lgamma(1)).toBeCloseTo(0, 10)
+  })
+
+  it('clamps values away from zero in underflowGuard', () => {
+    expect(underflowGuard(0)).toBe(1e-300)
+    expect(underflowGuard(1e-310)).toBe(1e-300)
+    expect(underflowGuard(-1e-310)).toBe(1e-300)
+    expect(underflowGuard(0.5)).toBe(0.5)
+    expect(underflowGuard(-0.5)).toBe(-0.5)
+    expect(underflowGuard(0, 1e-3)).toBe(1e-3)
   })
 })
 
@@ -75,6 +105,7 @@ describe('descriptive statistics', () => {
 
   it('rejects empty samples and invalid quantiles', () => {
     expect(() => mean([])).toThrow()
+    expect(() => quantile([], 0.5)).toThrow(/empty/)
     expect(() => quantile([1], -0.1)).toThrow(/\[0, 1\]/)
   })
 
@@ -118,6 +149,7 @@ describe('hypothesis tests', () => {
     const d = cohensD([0, 1, 2], [3, 4, 5])
     expect(d).toBeCloseTo(-3)
     expect(Math.abs(cohensD([1, 2, 3], [1, 2, 3]))).toBe(0)
+    expect(hedgesG([0, 1, 2], [3, 4, 5])).toBeCloseTo(-2.4, 10)
   })
 
   it('Mann-Whitney U detects complete separation', () => {
@@ -132,6 +164,13 @@ describe('hypothesis tests', () => {
     expect(result.pValue).toBeGreaterThanOrEqual(0)
   })
 
+  it('Mann-Whitney U returns zero z for all-identical samples', () => {
+    const result = mannWhitneyU([1, 1, 1], [1, 1, 1])
+    expect(result.u).toBeCloseTo(4.5, 10)
+    expect(result.z).toBe(0)
+    expect(result.pValue).toBeCloseTo(1, 6)
+  })
+
   it('Student pooled t-test agrees with Welch on equal variances', () => {
     const result = studentsTTest([1, 2, 3, 4, 5], [6, 7, 8, 9, 10])
     expect(result.meanDifference).toBeCloseTo(-5)
@@ -143,6 +182,7 @@ describe('hypothesis tests', () => {
     expect(() => welchTTest([], [1])).toThrow(/non-empty/)
     expect(() => studentsTTest([], [1])).toThrow(/non-empty/)
     expect(() => pairedTTest([1, 2], [1])).toThrow(/equal length/)
+    expect(() => pairedTTest([], [])).toThrow(/empty/)
   })
 
   it('returns zero Cohen\'s d for identical zero-variance samples', () => {
@@ -159,6 +199,13 @@ describe('bootstrap', () => {
     expect(ci.upper).toBeGreaterThanOrEqual(ci.estimate)
   })
 
+  it('uses a default seed when none is supplied', () => {
+    const ci = bootstrapMeanCI([1, 2, 3])
+    expect(ci.estimate).toBeCloseTo(2)
+    expect(ci.lower).toBeLessThanOrEqual(ci.estimate)
+    expect(ci.upper).toBeGreaterThanOrEqual(ci.estimate)
+  })
+
   it('mulberry32 is deterministic for a fixed seed', () => {
     const a = mulberry32(1)
     const b = mulberry32(1)
@@ -167,6 +214,13 @@ describe('bootstrap', () => {
 
   it('rejects empty samples', () => {
     expect(() => bootstrapMeanCI([])).toThrow(/empty/)
+  })
+
+  it('rejects invalid iterations and confidence', () => {
+    expect(() => bootstrapMeanCI([1], { iterations: 0 })).toThrow(/positive integer/)
+    expect(() => bootstrapMeanCI([1], { iterations: 1.5 })).toThrow(/positive integer/)
+    expect(() => bootstrapMeanCI([1], { confidence: 0 })).toThrow(/\(0, 1\)/)
+    expect(() => bootstrapMeanCI([1], { confidence: 1 })).toThrow(/\(0, 1\)/)
   })
 })
 

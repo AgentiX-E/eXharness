@@ -30,8 +30,8 @@
   "scripts": {
     "build": "tsup src/index.ts src/sqlite.ts src/postgres.ts --format esm,cjs --dts --sourcemap --clean",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "coverage": "vitest run --coverage"
+    "test": "vitest run --root ../..",
+    "coverage": "vitest run --coverage --root ../.."
   },
   "dependencies": {
     "better-sqlite3": "^11.7.0",

@@ -3,6 +3,7 @@ export {
   regularizedIncompleteBeta,
   tTwoTailedPValue,
   normalCdf,
+  underflowGuard,
 } from './math.js'
 
 export {
@@ -39,3 +40,5 @@ export {
 } from './metrics.js'
 
 export { Sprt, logLikelihoodRatio, sprtThresholds, type SprtConfig, type SprtDecision, type SprtState } from './sprt.js'
+
+export { cohensKappa, kappa, type KappaResult } from './kappa.js'

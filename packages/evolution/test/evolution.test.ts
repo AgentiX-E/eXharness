@@ -110,12 +110,14 @@ describe('CanaryController', () => {
       beta: 0.2,
       seed: 9,
     })
+    // Deterministic outcome: the candidate always succeeds and the baseline
+    // always fails, so Thompson routing converges to the candidate and SPRT
+    // must reach a promotion decision quickly and reproducibly.
     let decision = canary.decision()
     let steps = 0
     while (decision === 'continue' && steps < 1000) {
       const arm = canary.route()
-      const success = arm === 'v2' ? Math.random() < 0.8 : Math.random() < 0.5
-      canary.observe(arm, success)
+      canary.observe(arm, arm === 'v2')
       decision = canary.decision()
       steps++
     }

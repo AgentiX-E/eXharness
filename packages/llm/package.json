@@ -20,8 +20,8 @@
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean --platform neutral",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "coverage": "vitest run --coverage"
+    "test": "vitest run --root ../..",
+    "coverage": "vitest run --coverage --root ../.."
   },
   "engines": {
     "node": ">=20"

@@ -286,9 +286,10 @@ export class ContextImpl implements Context {
   }
 
   private async unmount(record: PluginRecord): Promise<void> {
-    if (record.disposer === null) return
     record.state = 'unloading'
-    const dispose = record.disposer
+    // Callers only invoke unmount() on records with a live disposer, so the
+    // non-null assertion is an enforced invariant rather than a runtime guard.
+    const dispose = record.disposer!
     record.disposer = null
     for (const dep of record.inject) {
       const set = this.root.dependents.get(dep)

@@ -49,6 +49,14 @@ describe('Context services', () => {
     expect(ctx.has('counter' as S)).toBe(false)
   })
 
+  it('provide disposer is a no-op after the scope is disposed', async () => {
+    const ctx = createRoot()
+    const remove = ctx.provide('counter' as S, { count: 1 })
+    await ctx.dispose()
+    await remove()
+    expect(ctx.has('counter' as S)).toBe(false)
+  })
+
   it('allows shadowing a parent service in a child scope', () => {
     const root = createRoot()
     root.provide('counter' as S, { count: 1 })
@@ -96,6 +104,25 @@ describe('Context effects', () => {
     expect(stops).toBe(1)
   })
 
+  it('is idempotent when the effect disposer is called twice', async () => {
+    const ctx = createRoot()
+    let stops = 0
+    const off = ctx.effect(() => () => stops++)
+    await off()
+    await off()
+    expect(stops).toBe(1)
+  })
+
+  it('accepts an executor that returns void (no disposer)', async () => {
+    const ctx = createRoot()
+    let calls = 0
+    ctx.effect(() => {
+      calls++
+    })
+    expect(calls).toBe(1)
+    await ctx.dispose()
+  })
+
   it('rejects effects registered after disposal', async () => {
     const ctx = createRoot()
     await ctx.dispose()
@@ -115,6 +142,17 @@ describe('Context plugins', () => {
     expect(order).toEqual(['mount'])
     await off()
     expect(order).toEqual(['mount', 'unmount'])
+  })
+
+  it('mounts an object plugin without an inject field', () => {
+    const ctx = createRoot()
+    const order: string[] = []
+    ctx.plugin({
+      apply() {
+        order.push('mounted')
+      },
+    })
+    expect(order).toEqual(['mounted'])
   })
 
   it('runs the returned disposer before effects (LIFO)', async () => {
@@ -221,6 +259,26 @@ describe('Context reactive injection', () => {
     await off()
     ctx.provide('storage' as S, { kind: 'x' })
     expect(order).toEqual([])
+  })
+})
+
+describe('Context event dispatch', () => {
+  it('delegates bail, serial, parallel and waterfall to the event bus', async () => {
+    const ctx = createRoot()
+
+    ctx.on('b' as Ev, () => 'from-bail')
+    expect(ctx.bail('b' as Ev)).toBe('from-bail')
+
+    ctx.on('s' as Ev, () => 'serial-hit')
+    expect(await ctx.serial('s' as Ev)).toBe('serial-hit')
+
+    let parallelCalls = 0
+    ctx.on('p' as Ev, () => parallelCalls++)
+    await ctx.parallel('p' as Ev)
+    expect(parallelCalls).toBe(1)
+
+    ctx.on('w' as Ev, (n: number, next: () => unknown) => `wrapped(${String(next())})`)
+    expect(await ctx.waterfall('w' as Ev, 1)).toBe('wrapped(undefined)')
   })
 })
 

@@ -223,6 +223,12 @@ export function bootstrapMeanCI(
 ): ConfidenceInterval {
   const { iterations = 2000, confidence = 0.95 } = options
   if (values.length === 0) throw new Error('bootstrapMeanCI: empty sample')
+  if (!Number.isInteger(iterations) || iterations < 1) {
+    throw new Error('bootstrapMeanCI: iterations must be a positive integer')
+  }
+  if (!(confidence > 0 && confidence < 1)) {
+    throw new Error('bootstrapMeanCI: confidence must be in (0, 1)')
+  }
   const estimate = mean(values)
   const means = new Array<number>(iterations)
   const rand = mulberry32(options.seed ?? 0xc0ffee)
@@ -235,8 +241,10 @@ export function bootstrapMeanCI(
   }
   means.sort((a, b) => a - b)
   const alpha = (1 - confidence) / 2
-  const lo = means[Math.floor(alpha * iterations)] ?? means[0]!
-  const hi = means[Math.ceil((1 - alpha) * iterations) - 1] ?? means[iterations - 1]!
+  // With confidence in (0, 1) and iterations >= 1, both indices are guaranteed
+  // to be within [0, iterations - 1], so the non-null assertions are sound.
+  const lo = means[Math.floor(alpha * iterations)]!
+  const hi = means[Math.ceil((1 - alpha) * iterations) - 1]!
   return { estimate, lower: lo, upper: hi, confidence }
 }
 

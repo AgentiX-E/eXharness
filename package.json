@@ -18,7 +18,7 @@
     "format": "prettier --write \"**/*.{ts,tsx,json,md,yml,yaml}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,json,md,yml,yaml}\"",
     "clean": "pnpm -r exec rm -rf dist coverage node_modules/.cache",
-    "release:check": "pnpm build && pnpm typecheck && pnpm test"
+    "release:check": "pnpm build && pnpm typecheck && pnpm test && pnpm coverage"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
