@@ -1,0 +1,42 @@
+{
+  "name": "exharness",
+  "version": "0.1.0",
+  "private": true,
+  "description": "eXharness — TypeScript-native Agent Harness lifecycle management & self-evolution framework (Node + browser).",
+  "type": "module",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "pnpm -r run build",
+    "typecheck": "pnpm -r run typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage",
+    "lint": "eslint . --ext .ts",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,json,md,yml,yaml}\"",
+    "clean": "pnpm -r exec rm -rf dist coverage node_modules/.cache",
+    "release:check": "pnpm build && pnpm typecheck && pnpm test"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@vitest/coverage-v8": "^3.0.0",
+    "prettier": "^3.4.0",
+    "tsup": "^8.3.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "keywords": [
+    "harness",
+    "llm",
+    "agent",
+    "evaluation",
+    "self-evolution",
+    "typescript",
+    "lifecycle",
+    "canary"
+  ],
+  "license": "Apache-2.0"
+}

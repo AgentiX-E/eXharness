@@ -1,0 +1,39 @@
+{
+  "name": "@exharness/core",
+  "version": "0.1.0",
+  "description": "eXharness core — a zero-dependency, browser-compatible micro-kernel for reversible-effect plugin lifecycle (plugin / service / effect / event / context).",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean --platform neutral",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "coverage": "vitest run --coverage"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "harness",
+    "micro-kernel",
+    "plugin",
+    "reversible-effects",
+    "lifecycle",
+    "dependency-injection",
+    "typescript"
+  ],
+  "license": "Apache-2.0"
+}

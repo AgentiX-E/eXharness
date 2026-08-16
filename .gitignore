@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+*.tsbuildinfo
+.cache/
+
+# Test / coverage
+coverage/
+.nyc_output/
+
+# Environment & secrets — NEVER commit API keys
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# TypeScript
+*.tgz
