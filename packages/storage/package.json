@@ -21,6 +21,11 @@
       "types": "./dist/postgres.d.ts",
       "import": "./dist/postgres.js",
       "default": "./dist/postgres.js"
+    },
+    "./git": {
+      "types": "./dist/git.d.ts",
+      "import": "./dist/git.js",
+      "default": "./dist/git.js"
     }
   },
   "sideEffects": false,
@@ -28,13 +33,14 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup src/index.ts src/sqlite.ts src/postgres.ts --format esm,cjs --dts --sourcemap --clean",
+    "build": "tsup src/index.ts src/sqlite.ts src/postgres.ts src/git.ts --format esm,cjs --dts --sourcemap --clean",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --root ../..",
     "coverage": "vitest run --coverage --root ../.."
   },
   "dependencies": {
     "better-sqlite3": "^11.7.0",
+    "isomorphic-git": "^1.41.4",
     "pg": "^8.13.0"
   },
   "devDependencies": {
