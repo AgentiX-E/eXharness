@@ -30,7 +30,7 @@
 Five concepts, mirroring Cordis semantics while being self-contained:
 
 - **Plugin** — `(ctx, config) => void | Disposable` or `{ name?, inject?, apply }`.
-  Plugins with unmet `inject` dependencies stay *pending* and mount automatically
+  Plugins with unmet `inject` dependencies stay _pending_ and mount automatically
   when dependencies appear (spatiotemporal composability).
 - **Service** — type-safe DI via `declare module '@exharness/core' { interface Services {…} }`;
   `ctx.provide(name, value)` returns a disposer that removes the service and

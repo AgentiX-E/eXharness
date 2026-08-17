@@ -40,8 +40,6 @@ export class OpenAiCompatibleEmbeddingProvider implements EmbeddingProvider {
     }
     const data = (await response.json()) as any
     const list: any[] = data.data ?? []
-    return list
-      .sort((a, b) => a.index - b.index)
-      .map((item) => item.embedding as number[])
+    return list.sort((a, b) => a.index - b.index).map((item) => item.embedding as number[])
   }
 }

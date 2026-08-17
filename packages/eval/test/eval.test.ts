@@ -145,7 +145,7 @@ describe('hypothesis tests', () => {
     expect(result.pValue).toBeLessThan(0.05)
   })
 
-  it('Cohen\'s d and Hedges\' g quantify effect size', () => {
+  it("Cohen's d and Hedges' g quantify effect size", () => {
     const d = cohensD([0, 1, 2], [3, 4, 5])
     expect(d).toBeCloseTo(-3)
     expect(Math.abs(cohensD([1, 2, 3], [1, 2, 3]))).toBe(0)
@@ -185,7 +185,7 @@ describe('hypothesis tests', () => {
     expect(() => pairedTTest([], [])).toThrow(/empty/)
   })
 
-  it('returns zero Cohen\'s d for identical zero-variance samples', () => {
+  it("returns zero Cohen's d for identical zero-variance samples", () => {
     expect(cohensD([1, 1, 1], [1, 1, 1])).toBe(0)
   })
 })

@@ -95,7 +95,13 @@ export class GEvalJudge {
   }
 
   async evaluate(input: string, output: string): Promise<GEvalResult> {
-    const prompt = buildGEvalPrompt(this.config.criteria, this.scale, input, output, this.config.useChainOfThought === true)
+    const prompt = buildGEvalPrompt(
+      this.config.criteria,
+      this.scale,
+      input,
+      output,
+      this.config.useChainOfThought === true,
+    )
     const response = await this.llm.generate({
       model: this.config.model ?? 'default',
       messages: [{ role: 'user', content: prompt }],

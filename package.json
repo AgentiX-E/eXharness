@@ -14,18 +14,26 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
-    "lint": "eslint . --ext .ts",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "smoke": "node scripts/esbuild-smoke.mjs",
+    "prepare": "husky",
     "format": "prettier --write \"**/*.{ts,tsx,json,md,yml,yaml}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,json,md,yml,yaml}\"",
     "clean": "pnpm -r exec rm -rf dist coverage node_modules/.cache",
-    "release:check": "pnpm build && pnpm typecheck && pnpm test && pnpm coverage"
+    "release:check": "pnpm lint && pnpm format:check && pnpm build && pnpm typecheck && pnpm test && pnpm coverage"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
     "@vitest/coverage-v8": "^3.0.0",
+    "esbuild": "^0.25",
+    "eslint": "^9",
+    "eslint-config-prettier": "^9",
+    "husky": "^9",
     "prettier": "^3.4.0",
     "tsup": "^8.3.0",
     "typescript": "^5.7.0",
+    "typescript-eslint": "^8",
     "vitest": "^3.0.0"
   },
   "keywords": [

@@ -53,9 +53,9 @@ describe('parseGEvalResponse', () => {
   })
 
   it('throws when a criterion is missing', () => {
-    expect(() => parseGEvalResponse('{"score": 4, "criteria": {"accuracy": 4}, "rationale": "x"}', criteria, 5)).toThrow(
-      /missing criterion "conciseness"/,
-    )
+    expect(() =>
+      parseGEvalResponse('{"score": 4, "criteria": {"accuracy": 4}, "rationale": "x"}', criteria, 5),
+    ).toThrow(/missing criterion "conciseness"/)
   })
 
   it('throws when a criterion score is out of range', () => {

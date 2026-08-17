@@ -26,7 +26,10 @@ describe('DisposableList', () => {
   it('supports idempotent removal of a specific disposer', async () => {
     const list = new DisposableList()
     const order: string[] = []
-    const removeB = list.push(() => order.push('a'), () => order.push('b'))
+    const removeB = list.push(
+      () => order.push('a'),
+      () => order.push('b'),
+    )
     expect(list.remove(() => order.push('b'))).toBe(false)
     expect(removeB).toBeTypeOf('function')
     removeB()

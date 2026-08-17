@@ -37,9 +37,7 @@ const runner = new HarnessRunner({
   router: { route: (input) => (input.task.includes('math') ? 'math' : 'general') },
   solver: new RegexSolver(/(\d+) plus (\d+)/),
   enforcer: new ZodEnforcer(z.object({ answer: z.number() })),
-  validator: new PredicateValidator([
-    { name: 'positive', predicate: (o: { answer: number }) => o.answer > 0 },
-  ]),
+  validator: new PredicateValidator([{ name: 'positive', predicate: (o: { answer: number }) => o.answer > 0 }]),
 })
 
 const llm = root.get('llm')
@@ -68,25 +66,25 @@ import { CanaryController } from '@exharness/evolution'
 const canary = new CanaryController({
   baselineId: 'v1',
   candidateId: 'v2',
-  p0: 0.5,   // baseline success rate (H0)
-  p1: 0.8,   // candidate target rate (H1)
+  p0: 0.5, // baseline success rate (H0)
+  p1: 0.8, // candidate target rate (H1)
 })
 
 for (let i = 0; i < 1000; i++) {
-  const arm = canary.route()                 // Thompson sampling
-  const success = Math.random() < 0.8        // observe the real outcome
+  const arm = canary.route() // Thompson sampling
+  const success = Math.random() < 0.8 // observe the real outcome
   canary.observe(arm, success)
   if (canary.decision() !== 'continue') break
 }
 
-console.log(canary.decision())              // 'accept-alternative' | 'accept-null'
+console.log(canary.decision()) // 'accept-alternative' | 'accept-null'
 ```
 
 ## 5. Choose a storage driver
 
 ```ts
-import { MemoryDriver } from '@exharness/storage'          // Node + browser
-import { SqliteDriver } from '@exharness/storage/sqlite'   // Node (embedded)
+import { MemoryDriver } from '@exharness/storage' // Node + browser
+import { SqliteDriver } from '@exharness/storage/sqlite' // Node (embedded)
 import { PostgresDriver } from '@exharness/storage/postgres' // Node (distributed)
 
 const db = new SqliteDriver('/tmp/app.db')

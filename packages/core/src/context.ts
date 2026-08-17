@@ -181,7 +181,7 @@ export class ContextImpl implements Context {
     }
   }
 
-  effect(execute: () => Disposable | void, label?: string): Disposable {
+  effect(execute: () => Disposable | void, _label?: string): Disposable {
     if (this.disposed) throw new Error(`cannot register effect in disposed scope "${this.name}"`)
     const cleanup = execute() ?? noopDisposable
 

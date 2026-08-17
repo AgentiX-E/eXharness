@@ -1,5 +1,8 @@
 /** Normalize answer text for comparison: lowercase and collapse whitespace. */
-export function normalizeAnswer(text: string, options: { lowercase?: boolean; collapseWhitespace?: boolean } = {}): string {
+export function normalizeAnswer(
+  text: string,
+  options: { lowercase?: boolean; collapseWhitespace?: boolean } = {},
+): string {
   let result = text
   if (options.collapseWhitespace !== false) result = result.replace(/\s+/g, ' ').trim()
   if (options.lowercase !== false) result = result.toLowerCase()
@@ -45,7 +48,10 @@ export function f1Score(truePositives: number, falsePositives: number, falseNega
 }
 
 /** Simple binary confusion-matrix counters derived from two boolean arrays. */
-export function confusionMatrix(predicted: readonly boolean[], expected: readonly boolean[]): {
+export function confusionMatrix(
+  predicted: readonly boolean[],
+  expected: readonly boolean[],
+): {
   truePositives: number
   falsePositives: number
   falseNegatives: number

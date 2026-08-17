@@ -1,8 +1,4 @@
-export {
-  type Disposable,
-  DisposableList,
-  noopDisposable,
-} from './disposable.js'
+export { type Disposable, DisposableList, noopDisposable } from './disposable.js'
 
 export {
   EventsService,

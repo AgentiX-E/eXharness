@@ -90,7 +90,7 @@ export function welchTTest(a: readonly number[], b: readonly number[]): TTestRes
   const nb = b.length
   const se2 = va / na + vb / nb
   const t = (ma - mb) / Math.sqrt(se2)
-  const df = se2 * se2 / ((va / na) ** 2 / (na - 1) + (vb / nb) ** 2 / (nb - 1))
+  const df = (se2 * se2) / ((va / na) ** 2 / (na - 1) + (vb / nb) ** 2 / (nb - 1))
   return {
     statistic: t,
     degreesOfFreedom: df,
@@ -203,7 +203,7 @@ export function mannWhitneyU(a: readonly number[], b: readonly number[]): MannWh
   for (const count of counts.values()) tieCorrection += count * (count * count - 1)
 
   const meanU = (n1 * n2) / 2
-  const varianceU = (n1 * n2 / 12) * (n + 1 - tieCorrection / (n * (n - 1)))
+  const varianceU = ((n1 * n2) / 12) * (n + 1 - tieCorrection / (n * (n - 1)))
   const z = varianceU === 0 ? 0 : (u - meanU) / Math.sqrt(varianceU)
   const pValue = 2 * (1 - normalCdf(Math.abs(z)))
   return { u, z, pValue }

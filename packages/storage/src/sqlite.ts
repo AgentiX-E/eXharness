@@ -59,15 +59,17 @@ export class SqliteDriver implements StorageDriver {
 
   async get<T extends StoredRecord>(collection: string, id: string): Promise<T | null> {
     this.ensureTable(collection)
-    const row = this.require().prepare(`SELECT data FROM ${this.tableName(collection)} WHERE id = ?`).get(id) as
-      | { data: string }
-      | undefined
+    const row = this.require()
+      .prepare(`SELECT data FROM ${this.tableName(collection)} WHERE id = ?`)
+      .get(id) as { data: string } | undefined
     return row === undefined ? null : (JSON.parse(row.data) as T)
   }
 
   async list<T extends StoredRecord>(collection: string, query?: Query): Promise<T[]> {
     this.ensureTable(collection)
-    const rows = this.require().prepare(`SELECT data FROM ${this.tableName(collection)}`).all() as { data: string }[]
+    const rows = this.require()
+      .prepare(`SELECT data FROM ${this.tableName(collection)}`)
+      .all() as { data: string }[]
     const records = rows.map((row) => JSON.parse(row.data) as T)
     return applyQuery(records, query)
   }
@@ -84,12 +86,16 @@ export class SqliteDriver implements StorageDriver {
 
   async remove(collection: string, id: string): Promise<boolean> {
     this.ensureTable(collection)
-    const result = this.require().prepare(`DELETE FROM ${this.tableName(collection)} WHERE id = ?`).run(id)
+    const result = this.require()
+      .prepare(`DELETE FROM ${this.tableName(collection)} WHERE id = ?`)
+      .run(id)
     return result.changes > 0
   }
 
   async clear(collection: string): Promise<void> {
     this.ensureTable(collection)
-    this.require().prepare(`DELETE FROM ${this.tableName(collection)}`).run()
+    this.require()
+      .prepare(`DELETE FROM ${this.tableName(collection)}`)
+      .run()
   }
 }

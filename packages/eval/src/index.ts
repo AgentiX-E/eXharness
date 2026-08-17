@@ -1,10 +1,4 @@
-export {
-  lgamma,
-  regularizedIncompleteBeta,
-  tTwoTailedPValue,
-  normalCdf,
-  underflowGuard,
-} from './math.js'
+export { lgamma, regularizedIncompleteBeta, tTwoTailedPValue, normalCdf, underflowGuard } from './math.js'
 
 export {
   mean,

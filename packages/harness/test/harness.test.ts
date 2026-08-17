@@ -1,13 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 import { MockProvider } from '@exharness/llm'
-import {
-  HarnessRunner,
-  PredicateValidator,
-  RegexSolver,
-  TemplatePrompt,
-  ZodEnforcer,
-} from '../src/index.js'
+import { HarnessRunner, PredicateValidator, RegexSolver, TemplatePrompt, ZodEnforcer } from '../src/index.js'
 
 describe('TemplatePrompt', () => {
   it('substitutes variables and leaves unknown ones empty', () => {
@@ -51,7 +45,14 @@ describe('PredicateValidator', () => {
   })
 
   it('treats a throwing predicate as a failure', () => {
-    const validator = new PredicateValidator([{ name: 'boom', predicate: () => { throw new Error('x') } }])
+    const validator = new PredicateValidator([
+      {
+        name: 'boom',
+        predicate: () => {
+          throw new Error('x')
+        },
+      },
+    ])
     expect(validator.validate(1).valid).toBe(false)
   })
 })

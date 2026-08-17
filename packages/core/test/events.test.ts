@@ -36,7 +36,7 @@ describe('EventsService', () => {
   it('serial bails on the first truthy return', async () => {
     const events = new EventsService()
     const order: number[] = []
-    events.on('ping', (n) => {
+    events.on('ping', () => {
       order.push(1)
       return undefined
     })
@@ -44,7 +44,7 @@ describe('EventsService', () => {
       order.push(2)
       return `bail:${n}`
     })
-    events.on('ping', (n) => {
+    events.on('ping', () => {
       order.push(3)
       return 'never'
     })

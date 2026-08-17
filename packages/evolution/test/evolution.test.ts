@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { CanaryController, MetricsCollector, ThompsonRouter, beta, gamma, mulberry32, standardNormal } from '../src/index.js'
+import {
+  CanaryController,
+  MetricsCollector,
+  ThompsonRouter,
+  beta,
+  gamma,
+  mulberry32,
+  standardNormal,
+} from '../src/index.js'
 
 describe('rng', () => {
   it('mulberry32 is deterministic and bounded', () => {
