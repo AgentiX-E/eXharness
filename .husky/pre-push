@@ -1,1 +1,1 @@
-pnpm release:check
+bash scripts/ensure-postgres.sh && pnpm release:check
