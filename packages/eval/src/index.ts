@@ -36,3 +36,19 @@ export {
 export { Sprt, logLikelihoodRatio, sprtThresholds, type SprtConfig, type SprtDecision, type SprtState } from './sprt.js'
 
 export { cohensKappa, kappa, type KappaResult } from './kappa.js'
+
+export {
+  dot,
+  scale,
+  addVectors,
+  subtractVectors,
+  norm,
+  matVec,
+  outer,
+  matAdd,
+  matScale,
+  cholesky,
+  choleskySolve,
+  choleskyInvert,
+  sampleMultivariateNormal,
+} from './linalg.js'
