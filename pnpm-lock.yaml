@@ -111,6 +111,8 @@ importers:
         specifier: ^8.11.10
         version: 8.21.0
 
+  packages/telemetry: {}
+
 packages:
 
   '@ampproject/remapping@2.3.0':
