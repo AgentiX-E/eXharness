@@ -50,6 +50,12 @@ importers:
 
   packages/core: {}
 
+  packages/dataset:
+    dependencies:
+      '@exharness/llm':
+        specifier: workspace:*
+        version: link:../llm
+
   packages/embedding: {}
 
   packages/eval: {}
