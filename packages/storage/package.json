@@ -26,6 +26,11 @@
       "types": "./dist/git.d.ts",
       "import": "./dist/git.js",
       "default": "./dist/git.js"
+    },
+    "./sqljs": {
+      "types": "./dist/sqljs.d.ts",
+      "import": "./dist/sqljs.js",
+      "default": "./dist/sqljs.js"
     }
   },
   "sideEffects": false,
@@ -33,7 +38,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup src/index.ts src/sqlite.ts src/postgres.ts src/git.ts --format esm,cjs --dts --sourcemap --clean",
+    "build": "tsup src/index.ts src/sqlite.ts src/postgres.ts src/git.ts src/sqljs.ts --format esm,cjs --dts --sourcemap --clean",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --root ../..",
     "coverage": "vitest run --coverage --root ../.."
@@ -41,11 +46,13 @@
   "dependencies": {
     "better-sqlite3": "^11.7.0",
     "isomorphic-git": "^1.41.4",
-    "pg": "^8.13.0"
+    "pg": "^8.13.0",
+    "sql.js": "^1.14.2"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.11",
-    "@types/pg": "^8.11.10"
+    "@types/pg": "^8.11.10",
+    "@types/sql.js": "^1.4.9"
   },
   "engines": {
     "node": ">=20"
