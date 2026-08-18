@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 import { MockProvider } from '@exharness/llm'
-import { HarnessRunner, PredicateValidator, RegexSolver, TemplatePrompt, ZodEnforcer } from '../src/index.js'
+import {
+  ArithmeticSolver,
+  HarnessRunner,
+  PredicateValidator,
+  RegexSolver,
+  TemplatePrompt,
+  ZodEnforcer,
+} from '../src/index.js'
 
 describe('TemplatePrompt', () => {
   it('substitutes variables and leaves unknown ones empty', () => {
@@ -78,6 +85,47 @@ describe('RegexSolver', () => {
   it('returns empty string when the capture group is absent', () => {
     const solver = new RegexSolver(/a(b)?c/, 1)
     expect(solver.solve({ task: 'ac' })).toBe('')
+  })
+})
+
+describe('ArithmeticSolver', () => {
+  it('solves a task with an embedded arithmetic expression', () => {
+    const solver = new ArithmeticSolver()
+    const input = { task: 'What is 2 + 3?' }
+    expect(solver.canSolve(input)).toBe(true)
+    expect(solver.solve(input)).toBe('5')
+  })
+
+  it('respects precedence in multi-operator expressions', () => {
+    const solver = new ArithmeticSolver()
+    expect(solver.solve({ task: '2 + 3 * 4' })).toBe('14')
+  })
+
+  it('declines a task with no arithmetic expression', () => {
+    const solver = new ArithmeticSolver()
+    expect(solver.canSolve({ task: 'What is the capital of France?' })).toBe(false)
+  })
+
+  it('declines a malformed expression', () => {
+    const solver = new ArithmeticSolver()
+    expect(solver.canSolve({ task: 'compute 2 +' })).toBe(false)
+  })
+
+  it('declines a division-by-zero expression', () => {
+    const solver = new ArithmeticSolver()
+    expect(solver.canSolve({ task: '1 / 0' })).toBe(false)
+  })
+
+  it('throws when solving a task with no expression', () => {
+    const solver = new ArithmeticSolver()
+    expect(() => solver.solve({ task: 'hello' })).toThrow(/no arithmetic expression/)
+  })
+
+  it('accepts a custom extraction pattern', () => {
+    const solver = new ArithmeticSolver(/result=\s*(\d+(?:\.\d+)?\s*[+\-*/]\s*\d+(?:\.\d+)?)/)
+    const input = { task: 'result= 6 * 7' }
+    expect(solver.canSolve(input)).toBe(true)
+    expect(solver.solve(input)).toBe('42')
   })
 })
 
@@ -163,5 +211,41 @@ describe('HarnessRunner', () => {
     })
     const output = await runner.run(llm, { task: 'x' })
     expect(output.route).toBe('custom-route')
+  })
+
+  it('forwards the configured temperature to the LLM', async () => {
+    let received: number | undefined
+    const llm = {
+      kind: 'spy',
+      async generate(options: { temperature?: number }) {
+        received = options.temperature
+        return { content: 'ok' }
+      },
+    }
+    const runner = new HarnessRunner({
+      prompt: new TemplatePrompt('{task}'),
+      validator: new PredicateValidator([{ name: 'x', predicate: () => true }]),
+      temperature: 0.3,
+    })
+    await runner.run(llm, { task: 'x' })
+    expect(received).toBe(0.3)
+  })
+
+  it('omits temperature from the LLM call when not configured', async () => {
+    let received: { temperature?: number } | undefined
+    const llm = {
+      kind: 'spy',
+      async generate(options: { temperature?: number }) {
+        received = options
+        return { content: 'ok' }
+      },
+    }
+    const runner = new HarnessRunner({
+      prompt: new TemplatePrompt('{task}'),
+      validator: new PredicateValidator([{ name: 'x', predicate: () => true }]),
+    })
+    await runner.run(llm, { task: 'x' })
+    expect(received).toBeDefined()
+    expect(received!.temperature).toBeUndefined()
   })
 })

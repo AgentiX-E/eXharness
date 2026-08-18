@@ -66,6 +66,27 @@ importers:
         specifier: workspace:*
         version: link:../eval
 
+  packages/experiment:
+    dependencies:
+      '@exharness/benchmarks':
+        specifier: workspace:*
+        version: link:../benchmarks
+      '@exharness/eval':
+        specifier: workspace:*
+        version: link:../eval
+      '@exharness/evolution':
+        specifier: workspace:*
+        version: link:../evolution
+      '@exharness/harness':
+        specifier: workspace:*
+        version: link:../harness
+      '@exharness/llm':
+        specifier: workspace:*
+        version: link:../llm
+      '@exharness/telemetry':
+        specifier: workspace:*
+        version: link:../telemetry
+
   packages/harness:
     dependencies:
       '@exharness/llm':

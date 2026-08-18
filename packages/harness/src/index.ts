@@ -13,5 +13,6 @@ export {
 export { TemplatePrompt } from './prompt.js'
 export { ZodEnforcer } from './enforcer.js'
 export { PredicateValidator, type Predicate } from './validator.js'
-export { RegexSolver } from './solver.js'
+export { RegexSolver, ArithmeticSolver } from './solver.js'
+export { evaluateArithmetic } from './arithmetic.js'
 export { HarnessRunner, type HarnessConfig } from './runner.js'

@@ -19,6 +19,8 @@ export interface HarnessConfig<T = unknown> {
   /** Maximum LLM calls before giving up (format-enforcement retries). */
   maxAttempts?: number
   model?: string
+  /** Sampling temperature forwarded to the LLM on every generation. */
+  temperature?: number
 }
 
 /**
@@ -67,6 +69,7 @@ export class HarnessRunner<T = unknown> {
         model: this.config.model ?? 'default',
         messages,
         jsonMode: this.config.enforcer !== undefined,
+        temperature: this.config.temperature,
       })
       const raw = llmResult.content
       trace.push({ name: 'llm', detail: `attempt ${attempt}` })
