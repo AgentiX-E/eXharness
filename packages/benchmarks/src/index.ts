@@ -28,3 +28,12 @@ export {
 } from './datasets.js'
 
 export { aggregate, BenchmarkRunner, type RunnerOptions } from './runner.js'
+
+export {
+  buildHumanEvalCode,
+  evaluateHumanEval,
+  type HumanEvalSample,
+  type HumanEvalSampleResult,
+  type HumanEvalResult,
+  type EvaluateHumanEvalOptions,
+} from './human-eval.js'

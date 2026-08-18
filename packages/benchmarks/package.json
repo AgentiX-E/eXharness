@@ -11,6 +11,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./code-executor": {
+      "types": "./dist/code-executor.d.ts",
+      "import": "./dist/code-executor.js",
+      "default": "./dist/code-executor.js"
     }
   },
   "sideEffects": false,
@@ -18,7 +23,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean --platform neutral",
+    "build": "tsup src/index.ts src/code-executor.ts --format esm,cjs --dts --sourcemap --clean --platform neutral",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --root ../..",
     "coverage": "vitest run --coverage --root ../.."
