@@ -11,3 +11,4 @@ export {
 
 export { OpenAiCompatibleProvider, type OpenAiCompatibleConfig } from './openai.js'
 export { MockProvider, type MockProviderConfig } from './mock.js'
+export { createLlmFromEnv, readLlmEnv, resolveEnv, LLM_ENV_KEYS, type LlmEnvConfig } from './env.js'
