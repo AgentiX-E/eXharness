@@ -48,6 +48,27 @@ importers:
         specifier: workspace:*
         version: link:../eval
 
+  packages/cli:
+    dependencies:
+      '@exharness/benchmarks':
+        specifier: workspace:*
+        version: link:../benchmarks
+      '@exharness/eval':
+        specifier: workspace:*
+        version: link:../eval
+      '@exharness/evolution':
+        specifier: workspace:*
+        version: link:../evolution
+      '@exharness/experiment':
+        specifier: workspace:*
+        version: link:../experiment
+      '@exharness/harness':
+        specifier: workspace:*
+        version: link:../harness
+      '@exharness/llm':
+        specifier: workspace:*
+        version: link:../llm
+
   packages/core: {}
 
   packages/dataset:
