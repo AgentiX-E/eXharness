@@ -2,11 +2,12 @@ import { OpenAiCompatibleProvider } from './openai.js'
 
 /**
  * Environment variable names for the pluggable LLM factory. API keys are read
- * ONLY from the environment and never from code or committed config.
+ * ONLY from the environment (typically a CI secret) and never from code or
+ * committed config.
  */
 export const LLM_ENV_KEYS = {
   baseUrl: 'EXHARNESS_LLM_BASE_URL',
-  apiKey: 'EXHARNESS_LLM_API_KEY',
+  apiKey: 'DEEPSEEK_API_KEY',
   model: 'EXHARNESS_LLM_MODEL',
 } as const
 

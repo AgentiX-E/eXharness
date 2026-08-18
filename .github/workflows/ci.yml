@@ -17,12 +17,12 @@ jobs:
 
     env:
       EXHARNESS_TEST_PG_URL: postgres://exharness:exharness@127.0.0.1:5432/exharness_test
-      # Optional live-integration keys. When these secrets are configured on the
-      # repository, the live LLM/embedding tests run against the real endpoints;
-      # otherwise they are skipped (empty values) and the rest of the suite
-      # remains fully green.
-      EXHARNESS_LLM_API_KEY: ${{ secrets.EXHARNESS_LLM_API_KEY }}
-      EXHARNESS_EMBEDDING_API_KEY: ${{ secrets.EXHARNESS_EMBEDDING_API_KEY }}
+      # Real LLM / embedding / dataset secrets. When configured, the live
+      # integration tests call the real DeepSeek and Zhipu endpoints; otherwise
+      # they are skipped (empty values) and the rest of the suite stays green.
+      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+      ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
 
     steps:
       - name: Checkout

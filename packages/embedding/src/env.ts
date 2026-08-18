@@ -2,11 +2,12 @@ import { OpenAiCompatibleEmbeddingProvider } from './openai.js'
 
 /**
  * Environment variable names for the pluggable embedding factory. API keys are
- * read ONLY from the environment and never from code or committed config.
+ * read ONLY from the environment (typically a CI secret) and never from code
+ * or committed config.
  */
 export const EMBEDDING_ENV_KEYS = {
   baseUrl: 'EXHARNESS_EMBEDDING_BASE_URL',
-  apiKey: 'EXHARNESS_EMBEDDING_API_KEY',
+  apiKey: 'ZHIPU_API_KEY',
   model: 'EXHARNESS_EMBEDDING_MODEL',
 } as const
 

@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { createEmbeddingFromEnv } from '../src/index.js'
 
-const apiKey = process.env.EXHARNESS_EMBEDDING_API_KEY
+const apiKey = process.env.ZHIPU_API_KEY
 
 /**
- * Live integration against a real OpenAI-compatible embeddings endpoint (Zhipu
- * GLM by default). Skipped when no API key is present; run locally with
- * `EXHARNESS_EMBEDDING_API_KEY` set to verify the real transport.
+ * Live integration against the real Zhipu GLM embeddings endpoint. Skipped when
+ * no API key is present; run with the `ZHIPU_API_KEY` secret configured to
+ * verify the real transport.
  */
-describe.skipIf(!apiKey)('Embedding live integration', () => {
+describe.skipIf(!apiKey)('Embedding live integration (Zhipu GLM)', () => {
   it('embeds a text into a finite, non-empty vector', async () => {
     const provider = createEmbeddingFromEnv()
     const vectors = await provider.embed(['hello world'])

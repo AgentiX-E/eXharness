@@ -104,6 +104,16 @@ const llm = new OpenAiCompatibleProvider({
 })
 ```
 
+```ts
+import { OpenAiCompatibleEmbeddingProvider } from '@exharness/embedding'
+
+const embedding = new OpenAiCompatibleEmbeddingProvider({
+  baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+  apiKey: process.env.ZHIPU_API_KEY!, // env-injected, never committed
+  model: 'embedding-3',
+})
+```
+
 ## Notes
 
 - Never commit API keys — inject via environment variables only.

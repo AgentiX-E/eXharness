@@ -1,19 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import { createLlmFromEnv } from '../src/index.js'
 
-const apiKey = process.env.EXHARNESS_LLM_API_KEY
+const apiKey = process.env.DEEPSEEK_API_KEY
 
 /**
- * Live integration against a real OpenAI-compatible endpoint (DeepSeek by
- * default). Skipped when no API key is present so the suite stays hermetic in
- * offline/CI environments; run locally with `EXHARNESS_LLM_API_KEY` set to
- * verify the real transport.
+ * Live integration against the real DeepSeek endpoint. Skipped when no API key
+ * is present so the suite stays hermetic in offline/CI environments; run with
+ * the `DEEPSEEK_API_KEY` secret configured to verify the real transport.
  */
-describe.skipIf(!apiKey)('LLM live integration', () => {
+describe.skipIf(!apiKey)('LLM live integration (DeepSeek)', () => {
   it('generates a non-empty completion with usage', async () => {
     const provider = createLlmFromEnv()
     const result = await provider.generate({
-      model: process.env.EXHARNESS_LLM_MODEL ?? 'deepseek-chat',
       messages: [{ role: 'user', content: 'Reply with the single word: ok' }],
       maxTokens: 16,
     })
