@@ -29,8 +29,8 @@ describe('IFEval instruction checks', () => {
 
   it('keywords:letter_frequency counts a single letter', () => {
     const id = 'keywords:letter_frequency'
-    expect(checkInstruction(id, 'eee', { letter: 'e', frequency: 3, relation: 'at least' })).toBe(true)
-    expect(checkInstruction(id, 'ee', { letter: 'e', frequency: 3, relation: 'at least' })).toBe(false)
+    expect(checkInstruction(id, 'eee', { letter: 'e', let_frequency: 3, let_relation: 'at least' })).toBe(true)
+    expect(checkInstruction(id, 'ee', { letter: 'e', let_frequency: 3, let_relation: 'at least' })).toBe(false)
   })
 
   it('length_constraints:number_words enforces word count', () => {
@@ -48,9 +48,9 @@ describe('IFEval instruction checks', () => {
 
   it('detectable_content:number_placeholders counts [x] placeholders', () => {
     const id = 'detectable_content:number_placeholders'
-    expect(checkInstruction(id, 'see [name] and [address]', { num_placeholders: 2, relation: 'at least' })).toBe(true)
-    expect(checkInstruction(id, 'see [name]', { num_placeholders: 2, relation: 'at least' })).toBe(false)
-    expect(checkInstruction(id, 'no placeholder', { num_placeholders: 1, relation: 'less than' })).toBe(true)
+    expect(checkInstruction(id, 'see [name] and [address]', { num_placeholders: 2 })).toBe(true)
+    expect(checkInstruction(id, 'see [name]', { num_placeholders: 2 })).toBe(false)
+    expect(checkInstruction(id, 'no placeholder', { num_placeholders: 1 })).toBe(false)
   })
 
   it('detectable_format:number_bullet_lists requires exact bullet count', () => {
@@ -61,26 +61,16 @@ describe('IFEval instruction checks', () => {
 
   it('detectable_format:number_highlighted_sections counts highlights', () => {
     const id = 'detectable_format:number_highlighted_sections'
-    expect(checkInstruction(id, 'a *bold* and **strong**', { num_highlights: 2, relation: 'at least' })).toBe(true)
-    expect(checkInstruction(id, 'a *bold*', { num_highlights: 2, relation: 'at least' })).toBe(false)
-    expect(checkInstruction(id, 'no highlight', { num_highlights: 1, relation: 'less than' })).toBe(true)
+    expect(checkInstruction(id, 'a *bold* and **strong**', { num_highlights: 2 })).toBe(true)
+    expect(checkInstruction(id, 'a *bold*', { num_highlights: 2 })).toBe(false)
+    expect(checkInstruction(id, 'no highlight', { num_highlights: 1 })).toBe(false)
   })
 
   it('detectable_format:number_sections counts section markers', () => {
     const id = 'detectable_format:number_sections'
-    expect(
-      checkInstruction(id, 'Section 1\nSection 2', {
-        section_spliter: 'Section',
-        num_sections: 2,
-        relation: 'at least',
-      }),
-    ).toBe(true)
-    expect(
-      checkInstruction(id, 'Section 1', { section_spliter: 'Section', num_sections: 2, relation: 'at least' }),
-    ).toBe(false)
-    expect(
-      checkInstruction(id, 'no sections here', { section_spliter: 'Section', num_sections: 1, relation: 'less than' }),
-    ).toBe(true)
+    expect(checkInstruction(id, 'Section 1\nSection 2', { section_spliter: 'Section', num_sections: 2 })).toBe(true)
+    expect(checkInstruction(id, 'Section 1', { section_spliter: 'Section', num_sections: 2 })).toBe(false)
+    expect(checkInstruction(id, 'no sections here', { section_spliter: 'Section', num_sections: 1 })).toBe(false)
   })
 
   it('detectable_format:number_paragraphs requires exact *** count', () => {
@@ -124,8 +114,10 @@ describe('IFEval instruction checks', () => {
 
   it('change_case:capital_word_frequency counts all-caps words', () => {
     const id = 'change_case:capital_word_frequency'
-    expect(checkInstruction(id, 'a HELLO world TEST', { frequency: 2, relation: 'at least' })).toBe(true)
-    expect(checkInstruction(id, 'a HELLO world', { frequency: 2, relation: 'at least' })).toBe(false)
+    expect(checkInstruction(id, 'a HELLO world TEST', { capital_frequency: 2, capital_relation: 'at least' })).toBe(
+      true,
+    )
+    expect(checkInstruction(id, 'a HELLO world', { capital_frequency: 2, capital_relation: 'at least' })).toBe(false)
   })
 
   it('punctuation:no_comma forbids commas', () => {
@@ -221,9 +213,12 @@ describe('IFEval aggregation', () => {
 
   it('handles empty responses and token-less text', () => {
     expect(checkInstruction('length_constraints:number_words', '', { num_words: 1, relation: 'less than' })).toBe(true)
-    expect(checkInstruction('change_case:capital_word_frequency', '!!!', { frequency: 1, relation: 'less than' })).toBe(
-      true,
-    )
+    expect(
+      checkInstruction('change_case:capital_word_frequency', '!!!', {
+        capital_frequency: 1,
+        capital_relation: 'less than',
+      }),
+    ).toBe(true)
   })
 })
 

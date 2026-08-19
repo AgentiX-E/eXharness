@@ -35,7 +35,11 @@ function asNumber(v: unknown, name: string): number {
 }
 
 function relation(kwargs: Record<string, unknown>): 'less than' | 'at least' | 'equal' {
-  const r = asString(kwargs.relation, 'relation')
+  return relationFrom('relation', kwargs)
+}
+
+function relationFrom(key: string, kwargs: Record<string, unknown>): 'less than' | 'at least' | 'equal' {
+  const r = asString(kwargs[key], key)
   if (r === 'less than' || r === 'at least' || r === 'equal') return r
   throw new Error(`IFEval: unsupported relation "${r}"`)
 }
@@ -88,8 +92,8 @@ const keywordsFrequency: InstructionChecker = (response, kwargs) => {
 /** Occurrence count of a single letter. */
 const keywordsLetterFrequency: InstructionChecker = (response, kwargs) => {
   const letter = asString(kwargs.letter, 'letter').toLowerCase()
-  const frequency = asNumber(kwargs.frequency, 'frequency')
-  const rel = relation(kwargs)
+  const frequency = asNumber(kwargs.let_frequency, 'let_frequency')
+  const rel = relationFrom('let_relation', kwargs)
   const count = [...response.toLowerCase()].filter((c) => c === letter).length
   return compare(count, rel, frequency)
 }
@@ -108,12 +112,11 @@ const lengthNumberSentences: InstructionChecker = (response, kwargs) => {
   return compare(countSentences(response), rel, numSentences)
 }
 
-/** Bracket placeholders `[...]` count constraint. */
+/** Bracket placeholders `[...]` count must be at least N. */
 const placeholders: InstructionChecker = (response, kwargs) => {
   const num = asNumber(kwargs.num_placeholders, 'num_placeholders')
-  const rel = relation(kwargs)
   const count = response.match(/\[.*?\]/g)?.length ?? 0
-  return compare(count, rel, num)
+  return count >= num
 }
 
 /** Markdown bullet list (`*` or `-`) line count must be exact. */
@@ -123,22 +126,20 @@ const bulletLists: InstructionChecker = (response, kwargs) => {
   return count === numBullets
 }
 
-/** Highlighted `*text*` / `**text**` sections count constraint. */
+/** Highlighted `*text*` / `**text**` sections count must be at least N. */
 const highlightedSections: InstructionChecker = (response, kwargs) => {
   const num = asNumber(kwargs.num_highlights, 'num_highlights')
-  const rel = relation(kwargs)
   const count = (response.match(/\*[^\n*]+\*/g)?.length ?? 0) + (response.match(/\*\*[^\n*]+\*\*/g)?.length ?? 0)
-  return compare(count, rel, num)
+  return count >= num
 }
 
-/** `Section 1` / `SECTION 2` section markers count constraint. */
+/** `Section 1` / `SECTION 2` section markers count must be at least N. */
 const sections: InstructionChecker = (response, kwargs) => {
   const splitter = asString(kwargs.section_spliter, 'section_spliter')
   const num = asNumber(kwargs.num_sections, 'num_sections')
-  const rel = relation(kwargs)
   const re = new RegExp(`\\s?${escapeRegExp(splitter)}\\s?\\d+\\s?`, 'g')
-  const matches = response.match(re)
-  return compare(matches?.length ?? 0, rel, num)
+  const count = response.match(re)?.length ?? 0
+  return count >= num
 }
 
 /** `***`-delimited paragraph count must be exact. */
@@ -189,8 +190,8 @@ const constrainedStart: InstructionChecker = (response, kwargs) => {
 
 /** Count of fully-capitalised words vs. a threshold. */
 const capitalWordFrequency: InstructionChecker = (response, kwargs) => {
-  const frequency = asNumber(kwargs.frequency, 'frequency')
-  const rel = relation(kwargs)
+  const frequency = asNumber(kwargs.capital_frequency, 'capital_frequency')
+  const rel = relationFrom('capital_relation', kwargs)
   const count = wordTokens(response).filter((w) => /^[A-Z]+$/.test(w)).length
   return compare(count, rel, frequency)
 }
