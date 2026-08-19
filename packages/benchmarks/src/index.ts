@@ -30,6 +30,17 @@ export {
 export { aggregate, BenchmarkRunner, type RunnerOptions } from './runner.js'
 
 export {
+  runBenchmarkSuite,
+  assembleCompetitiveReport,
+  humanEvalToBenchmarkResult,
+  type SuiteReport,
+  type RunBenchmarkSuiteOptions,
+  type SelfEvolutionComparison,
+  type CompetitiveBenchmarkReport,
+  type AssembleCompetitiveReportInput,
+} from './report.js'
+
+export {
   buildHumanEvalCode,
   evaluateHumanEval,
   type HumanEvalSample,
@@ -37,3 +48,15 @@ export {
   type HumanEvalResult,
   type EvaluateHumanEvalOptions,
 } from './human-eval.js'
+
+export {
+  fetchHfRows,
+  loadMmluFromHf,
+  loadIfEvalFromHf,
+  loadGsm8kFromHf,
+  loadHumanEvalFromHf,
+  type HfSource,
+  type HfFetch,
+  type HfFetchResponse,
+  type MmluHfEntry,
+} from './hf.js'

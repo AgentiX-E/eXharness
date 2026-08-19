@@ -1,0 +1,76 @@
+name: Benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      samples:
+        description: 'Samples per benchmark (MMLU is per-subject)'
+        required: false
+        default: '20'
+      mmlu_subjects:
+        description: 'Comma-separated MMLU subjects'
+        required: false
+        default: 'abstract_algebra,college_mathematics,elementary_mathematics,high_school_mathematics,professional_law'
+      trials:
+        description: 'Self-evolution comparison trials (>= 2)'
+        required: false
+        default: '3'
+  schedule:
+    # Weekly on Sunday at 02:00 UTC.
+    - cron: '0 2 * * 0'
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    name: Competitive benchmark
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    env:
+      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+      ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Run competitive benchmark
+        env:
+          BENCH_SAMPLES: ${{ inputs.samples || '20' }}
+          BENCH_SUBJECTS: ${{ inputs.mmlu_subjects || 'abstract_algebra,college_mathematics,elementary_mathematics,high_school_mathematics,professional_law' }}
+          BENCH_TRIALS: ${{ inputs.trials || '3' }}
+        run: |
+          node packages/cli/dist/bin.js report \
+            --samples="$BENCH_SAMPLES" \
+            --subjects="$BENCH_SUBJECTS" \
+            --trials="$BENCH_TRIALS" \
+            --json > benchmark-report.json
+          echo '--- benchmark-report.json ---'
+          cat benchmark-report.json
+
+      - name: Upload benchmark report
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-report
+          path: benchmark-report.json
+          retention-days: 30

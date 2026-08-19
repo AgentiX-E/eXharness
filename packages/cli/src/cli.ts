@@ -1,3 +1,4 @@
+import type { HfFetch } from '@exharness/benchmarks'
 import type { LlmProvider } from '@exharness/llm'
 import { parseArgs, type CliArgs } from './args.js'
 
@@ -14,6 +15,8 @@ export interface CliDeps {
   createLlm: (env: Record<string, string | undefined>) => LlmProvider
   /** File reader for file-backed benchmarks (injectable for tests). */
   readFile?: (path: string) => Promise<string>
+  /** Injectable fetch for HuggingFace dataset loading (defaults to globalThis.fetch). */
+  fetch?: HfFetch
   /** Command handlers (injectable for tests). */
   commands?: Partial<Record<string, CommandHandler>>
   version?: string
@@ -25,8 +28,9 @@ Usage:
   exharness <command> [options]
 
 Commands:
-  bench       Run a benchmark (arithmetic, mmlu, gsm8k, ifeval)
+  bench       Run a benchmark (arithmetic, mmlu, gsm8k, ifeval, humaneval)
   experiment  Run a BOHB-vs-random self-evolution experiment
+  report      Run the full competitive benchmark report (MMLU/IFEval/GSM8K/HumanEval + self-evolution)
   version     Print the version
   help        Show this help
 
