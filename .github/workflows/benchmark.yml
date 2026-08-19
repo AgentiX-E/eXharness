@@ -55,6 +55,7 @@ jobs:
         run: pnpm build
 
       - name: Run competitive benchmark
+        id: benchmark
         env:
           BENCH_SAMPLES: ${{ inputs.samples || '20' }}
           BENCH_SUBJECTS: ${{ inputs.mmlu_subjects || 'abstract_algebra,college_mathematics,elementary_mathematics,high_school_mathematics,professional_law' }}
@@ -64,7 +65,14 @@ jobs:
             --samples="$BENCH_SAMPLES" \
             --subjects="$BENCH_SUBJECTS" \
             --trials="$BENCH_TRIALS" \
-            --json > benchmark-report.json
+            --json > benchmark-report.json 2> benchmark-stderr.txt || {
+            code=$?
+            echo "## Benchmark failed with exit code $code" >> "$GITHUB_STEP_SUMMARY"
+            echo '```text' >> "$GITHUB_STEP_SUMMARY"
+            tail -80 benchmark-stderr.txt >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            exit "$code"
+          }
           echo '--- benchmark-report.json ---'
           cat benchmark-report.json
 
