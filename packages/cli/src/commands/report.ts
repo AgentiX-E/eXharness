@@ -30,26 +30,33 @@ export async function reportCommand(args: CliArgs, deps: CliDeps): Promise<numbe
   const llm = deps.createLlm(deps.env)
   const source = hfSource(deps)
 
-  const mmlu = multipleChoiceBenchmark(
-    'mmlu',
-    await loadMmluFromHf(source, parseSubjects(args.options.get('subjects')), samples),
-  )
+  const subjects = parseSubjects(args.options.get('subjects'))
+  deps.err(`Loading MMLU (${subjects.length} subjects x ${samples}) ...`)
+  const mmlu = multipleChoiceBenchmark('mmlu', await loadMmluFromHf(source, subjects, samples))
+  deps.err(`Loading IFEval (${samples}) ...`)
   const ifeval = ifevalBenchmark('ifeval', await loadIfEvalFromHf(source, samples))
+  deps.err(`Loading GSM8K (${samples}) ...`)
   const gsm8k = gsm8kBenchmark('gsm8k', await loadGsm8kFromHf(source, samples))
 
+  deps.err('Running benchmarks (mmlu, ifeval, gsm8k) ...')
   const suite = await runBenchmarkSuite([mmlu, ifeval, gsm8k], makeGenerate(llm, model))
 
+  deps.err(`Loading HumanEval (${samples}) ...`)
   const humanEvalTasks = await loadHumanEvalFromHf(source, samples)
+  deps.err('Running HumanEval (pass@1, real python3) ...')
   const humanEvalResult = await evaluateHumanEval(humanEvalTasks, new LocalPythonExecutor(), makeGenerate(llm, model), {
     numSamples: 1,
     k: 1,
   })
 
+  deps.err('Running self-evolution comparison (BOHB vs random) ...')
+  const comparison = await runSelfEvolutionComparison(trials)
+
   const benchmarks: BenchmarkResult[] = [...suite.benchmarks, humanEvalToBenchmarkResult(humanEvalResult)]
   const report = assembleCompetitiveReport({
     model,
     suite: { ...suite, benchmarks },
-    selfEvolution: await runSelfEvolutionComparison(trials),
+    selfEvolution: comparison,
   })
 
   if (args.flags.has('json')) {

@@ -9,6 +9,29 @@ export interface OpenAiCompatibleConfig {
   defaultHeaders?: Record<string, string>
   /** Injectable fetch for tests and non-standard runtimes. */
   fetchImpl?: typeof fetch
+  /** Maximum retries for transient failures (429/5xx/network). Defaults to 0. */
+  maxRetries?: number
+  /** Base backoff delay in ms; doubles on each retry. Defaults to 500. */
+  retryDelayMs?: number
+}
+
+/** HTTP statuses worth retrying with backoff (transient server/rate-limit errors). */
+const RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504])
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+/** Exponential backoff delay for the given attempt index (0-based). */
+function backoffDelay(attempt: number, retryDelayMs: number): number {
+  return retryDelayMs * 2 ** attempt
+}
+
+/** Parse a Retry-After header (seconds) into milliseconds, or null when absent/invalid. */
+function parseRetryAfter(value: string | null): number | null {
+  if (value === null) return null
+  const seconds = Number(value)
+  return Number.isFinite(seconds) && seconds >= 0 ? seconds * 1000 : null
 }
 
 /**
@@ -17,12 +40,26 @@ export interface OpenAiCompatibleConfig {
  *
  * It is intentionally implemented over the platform `fetch` with **no SDK
  * dependency**, so it works identically in Node (>=20) and the browser and is
- * fully auditable.
+ * fully auditable. Transient HTTP/network failures are retried with exponential
+ * backoff when `maxRetries` is configured, so long benchmark runs survive
+ * sporadic rate-limit (429) or server (5xx) blips.
  */
 export class OpenAiCompatibleProvider implements LlmProvider {
   readonly kind = 'openai-compatible'
 
-  constructor(private readonly config: OpenAiCompatibleConfig) {}
+  private readonly maxRetries: number
+  private readonly retryDelayMs: number
+
+  constructor(private readonly config: OpenAiCompatibleConfig) {
+    this.maxRetries = config.maxRetries ?? 0
+    if (!Number.isInteger(this.maxRetries) || this.maxRetries < 0) {
+      throw new Error('OpenAiCompatibleProvider: maxRetries must be a non-negative integer')
+    }
+    this.retryDelayMs = config.retryDelayMs ?? 500
+    if (!Number.isFinite(this.retryDelayMs) || this.retryDelayMs < 0) {
+      throw new Error('OpenAiCompatibleProvider: retryDelayMs must be a non-negative finite number')
+    }
+  }
 
   async generate(options: LlmGenerateOptions): Promise<LlmResult> {
     const base = this.config.baseUrl.replace(/\/+$/, '')
@@ -37,36 +74,55 @@ export class OpenAiCompatibleProvider implements LlmProvider {
     if (options.jsonMode === true) body.response_format = { type: 'json_object' }
 
     const fetchFn = this.config.fetchImpl ?? fetch
-    const response = await fetchFn(`${base}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.config.apiKey}`,
-        ...this.config.defaultHeaders,
-      },
-      body: JSON.stringify(body),
-    })
 
-    if (!response.ok) {
+    for (let attempt = 0; ; attempt++) {
+      let response: Response
+      try {
+        response = await fetchFn(`${base}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.config.apiKey}`,
+            ...this.config.defaultHeaders,
+          },
+          body: JSON.stringify(body),
+        })
+      } catch (error) {
+        // A transport error (ECONNRESET, "fetch failed", …) is retryable.
+        if (attempt < this.maxRetries) {
+          await sleep(backoffDelay(attempt, this.retryDelayMs))
+          continue
+        }
+        throw error
+      }
+
+      if (response.ok) {
+        const data = (await response.json()) as any
+        const choice = data.choices?.[0]
+        const message = choice?.message ?? {}
+        return {
+          content: typeof message.content === 'string' ? message.content : '',
+          toolCalls: message.tool_calls,
+          finishReason: choice?.finish_reason,
+          usage:
+            data.usage === undefined
+              ? undefined
+              : {
+                  inputTokens: data.usage.prompt_tokens ?? 0,
+                  outputTokens: data.usage.completion_tokens ?? 0,
+                },
+          raw: data,
+        }
+      }
+
+      if (RETRYABLE_STATUS.has(response.status) && attempt < this.maxRetries) {
+        const retryAfterMs = parseRetryAfter(response.headers.get('retry-after'))
+        await sleep(retryAfterMs ?? backoffDelay(attempt, this.retryDelayMs))
+        continue
+      }
+
       const text = await response.text().catch(() => '')
       throw new Error(`LLM request failed (${response.status}): ${text.slice(0, 500)}`)
-    }
-
-    const data = (await response.json()) as any
-    const choice = data.choices?.[0]
-    const message = choice?.message ?? {}
-    return {
-      content: typeof message.content === 'string' ? message.content : '',
-      toolCalls: message.tool_calls,
-      finishReason: choice?.finish_reason,
-      usage:
-        data.usage === undefined
-          ? undefined
-          : {
-              inputTokens: data.usage.prompt_tokens ?? 0,
-              outputTokens: data.usage.completion_tokens ?? 0,
-            },
-      raw: data,
     }
   }
 }

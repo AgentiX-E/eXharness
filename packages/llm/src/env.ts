@@ -42,5 +42,13 @@ export function readLlmEnv(env: Record<string, string | undefined> = resolveEnv(
 /** Build an OpenAI-compatible LLM provider from environment variables. */
 export function createLlmFromEnv(env?: Record<string, string | undefined>): OpenAiCompatibleProvider {
   const config = readLlmEnv(env)
-  return new OpenAiCompatibleProvider({ baseUrl: config.baseUrl, apiKey: config.apiKey, model: config.model })
+  return new OpenAiCompatibleProvider({
+    baseUrl: config.baseUrl,
+    apiKey: config.apiKey,
+    model: config.model,
+    // Benchmark runs make many sequential calls; tolerate sporadic rate-limit
+    // (429) and server (5xx) blips with exponential backoff.
+    maxRetries: 5,
+    retryDelayMs: 500,
+  })
 }

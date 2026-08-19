@@ -141,3 +141,82 @@ describe('OpenAiCompatibleProvider (real local HTTP)', () => {
     }
   })
 })
+
+describe('OpenAiCompatibleProvider retry', () => {
+  it('retries a transient 503 and succeeds on the next attempt', async () => {
+    let attempts = 0
+    const srv = http.createServer((_req, res) => {
+      attempts++
+      if (attempts === 1) {
+        res.writeHead(503, { 'Content-Type': 'application/json' })
+        res.end('{"error":"temporary"}')
+      } else {
+        res.writeHead(200, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ choices: [{ message: { content: 'ok' } }] }))
+      }
+    })
+    await new Promise<void>((resolve) => srv.listen(0, '127.0.0.1', resolve))
+    const p = (srv.address() as any).port
+    try {
+      const provider = new OpenAiCompatibleProvider({
+        baseUrl: `http://127.0.0.1:${p}/v1`,
+        apiKey: 'k',
+        maxRetries: 2,
+        retryDelayMs: 1,
+      })
+      const result = await provider.generate({ model: 'm', messages: [] })
+      expect(result.content).toBe('ok')
+      expect(attempts).toBe(2)
+    } finally {
+      await new Promise<void>((resolve, reject) => srv.close((e) => (e ? reject(e) : resolve())))
+    }
+  })
+
+  it('exhausts retries and throws on a persistent 503', async () => {
+    const srv = http.createServer((_req, res) => {
+      res.writeHead(503)
+      res.end('down')
+    })
+    await new Promise<void>((resolve) => srv.listen(0, '127.0.0.1', resolve))
+    const p = (srv.address() as any).port
+    try {
+      const provider = new OpenAiCompatibleProvider({
+        baseUrl: `http://127.0.0.1:${p}/v1`,
+        apiKey: 'k',
+        maxRetries: 2,
+        retryDelayMs: 1,
+      })
+      await expect(provider.generate({ model: 'm', messages: [] })).rejects.toThrow(/503/)
+    } finally {
+      await new Promise<void>((resolve, reject) => srv.close((e) => (e ? reject(e) : resolve())))
+    }
+  })
+
+  it('retries a transport (network) error and succeeds', async () => {
+    let calls = 0
+    const ok = new Response(JSON.stringify({ choices: [{ message: { content: 'ok' } }] }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
+    const fetchImpl: typeof fetch = async () => {
+      calls++
+      if (calls === 1) throw new TypeError('fetch failed')
+      return ok
+    }
+    const provider = new OpenAiCompatibleProvider({
+      baseUrl: 'http://x/v1',
+      apiKey: 'k',
+      fetchImpl,
+      maxRetries: 2,
+      retryDelayMs: 1,
+    })
+    const result = await provider.generate({ model: 'm', messages: [] })
+    expect(result.content).toBe('ok')
+    expect(calls).toBe(2)
+  })
+
+  it('rejects a negative maxRetries', () => {
+    expect(() => new OpenAiCompatibleProvider({ baseUrl: 'x', apiKey: 'k', maxRetries: -1 })).toThrow(/maxRetries/)
+    expect(() => new OpenAiCompatibleProvider({ baseUrl: 'x', apiKey: 'k', retryDelayMs: -1 })).toThrow(/retryDelayMs/)
+  })
+})
