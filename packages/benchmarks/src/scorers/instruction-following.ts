@@ -212,6 +212,67 @@ const twoResponses: InstructionChecker = (response) => {
   return !hasEmptyMiddle && nonEmpty.length === 2 && nonEmpty[0] !== nonEmpty[1]
 }
 
+/** All cased characters must be uppercase (at least one cased character). */
+const englishCapital: InstructionChecker = (response) => {
+  return /[A-Za-z]/.test(response) && response === response.toUpperCase()
+}
+
+/** All cased characters must be lowercase (at least one cased character). */
+const englishLowercase: InstructionChecker = (response) => {
+  return /[A-Za-z]/.test(response) && response === response.toLowerCase()
+}
+
+/** Response must contain at least `num_sections` numbered section markers. */
+const multipleSections: InstructionChecker = (response, kwargs) => {
+  const splitter = asString(kwargs.section_spliter, 'section_spliter')
+  const num = asNumber(kwargs.num_sections, 'num_sections')
+  const re = new RegExp(`\\s?${escapeRegExp(splitter)}\\s?\\d+\\s?`, 'g')
+  const count = response.match(re)?.length ?? 0
+  return count >= num
+}
+
+/** Response (after optional markdown fences) must parse as valid JSON. */
+const jsonFormat: InstructionChecker = (response) => {
+  let value = response.trim()
+  for (const prefix of ['```json', '```Json', '```JSON', '```']) {
+    if (value.startsWith(prefix)) {
+      value = value.slice(prefix.length)
+      break
+    }
+  }
+  if (value.endsWith('```')) value = value.slice(0, -3)
+  try {
+    JSON.parse(value.trim())
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Best-effort zero-dependency language detection. Returns an ISO 639-1 code
+ * (`en`, `zh`, `fr`, `de`, `es`) or null when the language is not confidently
+ * recognisable — matching the official IFEval behaviour of treating an
+ * undetectable language as a pass rather than a failure.
+ */
+function detectLanguage(text: string): string | null {
+  const lower = text.toLowerCase()
+  const hits = (words: readonly string[]): number => words.filter((w) => lower.includes(w)).length
+  if (hits([' the ', ' and ', ' is ', ' of ', ' to ', ' a ', ' in ', ' that ', ' it ', ' for ']) >= 2) return 'en'
+  if (/[\u4e00-\u9fff]/.test(text)) return 'zh'
+  if (hits([' le ', ' la ', ' les ', ' de ', ' des ', ' et ', ' est ', ' un ', ' une ']) >= 2) return 'fr'
+  if (hits([' der ', ' die ', ' das ', ' und ', ' ist ', ' ein ', ' eine ']) >= 2) return 'de'
+  if (hits([' el ', ' la ', ' los ', ' las ', ' de ', ' y ', ' es ', ' un ', ' una ']) >= 2) return 'es'
+  return null
+}
+
+/** Response must be in the requested language (undetectable = pass). */
+const responseLanguage: InstructionChecker = (response, kwargs) => {
+  const language = asString(kwargs.language, 'language')
+  const detected = detectLanguage(response)
+  return detected === null || detected === language
+}
+
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
@@ -228,6 +289,8 @@ export const instructionCheckers: Record<string, InstructionChecker> = {
   'detectable_format:number_bullet_lists': bulletLists,
   'detectable_format:number_highlighted_sections': highlightedSections,
   'detectable_format:number_sections': sections,
+  'detectable_format:multiple_sections': multipleSections,
+  'detectable_format:json_format': jsonFormat,
   'detectable_format:number_paragraphs': paragraphs,
   'detectable_format:postscript': postscript,
   'detectable_format:title': title,
@@ -235,6 +298,9 @@ export const instructionCheckers: Record<string, InstructionChecker> = {
   'startend:quotation': quotation,
   'startend:constrained': constrainedStart,
   'change_case:capital_word_frequency': capitalWordFrequency,
+  'change_case:english_capital': englishCapital,
+  'change_case:english_lowercase': englishLowercase,
+  'language:response_language': responseLanguage,
   'punctuation:no_comma': noComma,
   'combination:repeat_prompt': repeatPrompt,
   'combination:two_responses': twoResponses,

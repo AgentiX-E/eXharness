@@ -146,6 +146,48 @@ describe('IFEval instruction checks', () => {
     expect(checkInstruction(id, 'same******same', {})).toBe(false)
     expect(checkInstruction(id, 'first****** ******second', {})).toBe(false)
   })
+
+  it('change_case:english_capital requires all-caps text', () => {
+    const id = 'change_case:english_capital'
+    expect(checkInstruction(id, 'HELLO WORLD', {})).toBe(true)
+    expect(checkInstruction(id, 'Hello World', {})).toBe(false)
+    expect(checkInstruction(id, '123', {})).toBe(false)
+  })
+
+  it('change_case:english_lowercase requires all-lowercase text', () => {
+    const id = 'change_case:english_lowercase'
+    expect(checkInstruction(id, 'hello world', {})).toBe(true)
+    expect(checkInstruction(id, 'Hello World', {})).toBe(false)
+    expect(checkInstruction(id, '123', {})).toBe(false)
+  })
+
+  it('detectable_format:multiple_sections requires at least N numbered sections', () => {
+    const id = 'detectable_format:multiple_sections'
+    expect(
+      checkInstruction(id, 'Section 1\nSection 2\nSection 3', { section_spliter: 'Section', num_sections: 3 }),
+    ).toBe(true)
+    expect(checkInstruction(id, 'Section 1', { section_spliter: 'Section', num_sections: 2 })).toBe(false)
+    expect(checkInstruction(id, 'no sections here', { section_spliter: 'Section', num_sections: 1 })).toBe(false)
+  })
+
+  it('detectable_format:json_format validates JSON with optional fences', () => {
+    const id = 'detectable_format:json_format'
+    expect(checkInstruction(id, '{"a": 1}', {})).toBe(true)
+    expect(checkInstruction(id, '```json\n{"a": 1}\n```', {})).toBe(true)
+    expect(checkInstruction(id, 'not json', {})).toBe(false)
+  })
+
+  it('language:response_language detects the requested language', () => {
+    const id = 'language:response_language'
+    expect(checkInstruction(id, 'the cat is on the mat', { language: 'en' })).toBe(true)
+    expect(checkInstruction(id, '你好世界', { language: 'zh' })).toBe(true)
+    expect(checkInstruction(id, 'the cat is on the mat', { language: 'zh' })).toBe(false)
+    expect(checkInstruction(id, 'le chat et le chien', { language: 'fr' })).toBe(true)
+    expect(checkInstruction(id, 'der hund und die katze', { language: 'de' })).toBe(true)
+    expect(checkInstruction(id, 'el gato y la casa', { language: 'es' })).toBe(true)
+    // Undetectable language is treated as a pass (matches official IFEval).
+    expect(checkInstruction(id, '!', { language: 'en' })).toBe(true)
+  })
 })
 
 describe('IFEval aggregation', () => {
