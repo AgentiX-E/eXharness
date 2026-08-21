@@ -309,6 +309,78 @@ describe('OpenAiCompatibleProvider retry', () => {
     expect(() => new OpenAiCompatibleProvider({ baseUrl: 'x', apiKey: 'k', maxRetries: -1 })).toThrow(/maxRetries/)
     expect(() => new OpenAiCompatibleProvider({ baseUrl: 'x', apiKey: 'k', retryDelayMs: -1 })).toThrow(/retryDelayMs/)
   })
+
+  it('caps an over-long Retry-After to maxRetryAfterMs', async () => {
+    let attempts = 0
+    const srv = http.createServer((_req, res) => {
+      attempts++
+      if (attempts === 1) {
+        res.writeHead(429, { 'Content-Type': 'application/json', 'retry-after': '3600' })
+        res.end('{"error":"rate limited"}')
+      } else {
+        res.writeHead(200, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ choices: [{ message: { content: 'ok' } }] }))
+      }
+    })
+    await new Promise<void>((resolve) => srv.listen(0, '127.0.0.1', resolve))
+    const p = (srv.address() as any).port
+    try {
+      const provider = new OpenAiCompatibleProvider({
+        baseUrl: `http://127.0.0.1:${p}/v1`,
+        apiKey: 'k',
+        maxRetries: 1,
+        retryDelayMs: 1,
+        maxRetryAfterMs: 1,
+      })
+      const result = await provider.generate({ model: 'm', messages: [] })
+      expect(result.content).toBe('ok')
+      expect(attempts).toBe(2)
+    } finally {
+      await new Promise<void>((resolve, reject) => srv.close((e) => (e ? reject(e) : resolve())))
+    }
+  })
+
+  it('uses the injected RNG for jittered backoff', async () => {
+    let attempts = 0
+    let rngCalls = 0
+    const srv = http.createServer((_req, res) => {
+      attempts++
+      if (attempts === 1) {
+        res.writeHead(503, { 'Content-Type': 'application/json' })
+        res.end('{"error":"temporary"}')
+      } else {
+        res.writeHead(200, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ choices: [{ message: { content: 'ok' } }] }))
+      }
+    })
+    await new Promise<void>((resolve) => srv.listen(0, '127.0.0.1', resolve))
+    const p = (srv.address() as any).port
+    try {
+      const provider = new OpenAiCompatibleProvider({
+        baseUrl: `http://127.0.0.1:${p}/v1`,
+        apiKey: 'k',
+        maxRetries: 1,
+        retryDelayMs: 10,
+        jitter: true,
+        rng: () => {
+          rngCalls++
+          return 0
+        },
+      })
+      const result = await provider.generate({ model: 'm', messages: [] })
+      expect(result.content).toBe('ok')
+      expect(attempts).toBe(2)
+      expect(rngCalls).toBeGreaterThan(0)
+    } finally {
+      await new Promise<void>((resolve, reject) => srv.close((e) => (e ? reject(e) : resolve())))
+    }
+  })
+
+  it('rejects an invalid maxRetryAfterMs', () => {
+    expect(() => new OpenAiCompatibleProvider({ baseUrl: 'x', apiKey: 'k', maxRetryAfterMs: -1 })).toThrow(
+      /maxRetryAfterMs/,
+    )
+  })
 })
 
 describe('OpenAiCompatibleProvider timeout', () => {
@@ -377,5 +449,37 @@ describe('OpenAiCompatibleProvider timeout', () => {
     expect(() => new OpenAiCompatibleProvider({ baseUrl: 'x', apiKey: 'k', timeoutMs: Number.NaN })).toThrow(
       /timeoutMs/,
     )
+  })
+})
+
+describe('OpenAiCompatibleProvider error reporting', () => {
+  it('reports an insufficient-balance error on 402', async () => {
+    const srv = http.createServer((_req, res) => {
+      res.writeHead(402, { 'Content-Type': 'application/json' })
+      res.end('{"error":"Insufficient Balance"}')
+    })
+    await new Promise<void>((resolve) => srv.listen(0, '127.0.0.1', resolve))
+    const p = (srv.address() as any).port
+    try {
+      const provider = new OpenAiCompatibleProvider({ baseUrl: `http://127.0.0.1:${p}/v1`, apiKey: 'k' })
+      await expect(provider.generate({ model: 'm', messages: [] })).rejects.toThrow(/402.*insufficient balance/i)
+    } finally {
+      await new Promise<void>((resolve, reject) => srv.close((e) => (e ? reject(e) : resolve())))
+    }
+  })
+
+  it('reports an invalid-request error on 422', async () => {
+    const srv = http.createServer((_req, res) => {
+      res.writeHead(422, { 'Content-Type': 'application/json' })
+      res.end('{"error":"bad request"}')
+    })
+    await new Promise<void>((resolve) => srv.listen(0, '127.0.0.1', resolve))
+    const p = (srv.address() as any).port
+    try {
+      const provider = new OpenAiCompatibleProvider({ baseUrl: `http://127.0.0.1:${p}/v1`, apiKey: 'k' })
+      await expect(provider.generate({ model: 'm', messages: [] })).rejects.toThrow(/422.*invalid request/i)
+    } finally {
+      await new Promise<void>((resolve, reject) => srv.close((e) => (e ? reject(e) : resolve())))
+    }
   })
 })
