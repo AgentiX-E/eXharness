@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { LocalPythonExecutor } from '../src/code-executor.js'
+import type { CodeExecutor } from '../src/code-executor.js'
 import { buildHumanEvalCode, evaluateHumanEval, type HumanEvalSample } from '../src/human-eval.js'
 
 const sample: HumanEvalSample = {
@@ -142,6 +143,23 @@ describe('evaluateHumanEval', () => {
       },
       { numSamples: 1, k: 1 },
     )
+    expect(result.totalN).toBe(1)
+    expect(result.totalC).toBe(0)
+    expect(result.passAt1).toBe(0)
+    expect(result.failedGenerations).toBe(1)
+    expect(result.samples[0]).toEqual({ taskId: 'HumanEval/0', passed: 0, total: 1, failedGenerations: 1 })
+  })
+
+  it('records an executor failure and continues', async () => {
+    const failingExecutor: CodeExecutor = {
+      async execute() {
+        throw new Error('python3 not found')
+      },
+    }
+    const result = await evaluateHumanEval([sample], failingExecutor, async () => correctCompletion, {
+      numSamples: 1,
+      k: 1,
+    })
     expect(result.totalN).toBe(1)
     expect(result.totalC).toBe(0)
     expect(result.passAt1).toBe(0)

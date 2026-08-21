@@ -39,9 +39,9 @@ export function parseSubjects(value: string | undefined): string[] {
   return subjects
 }
 
-/** Build an `HfSource` from CLI dependencies (fetch + HF_TOKEN). */
+/** Build an `HfSource` from CLI dependencies (fetch + HF_TOKEN + transient retries). */
 export function hfSource(deps: CliDeps): HfSource {
-  return { fetch: deps.fetch, token: deps.env.HF_TOKEN }
+  return { fetch: deps.fetch, token: deps.env.HF_TOKEN, maxRetries: 3, retryDelayMs: 500 }
 }
 
 /** A generator that turns a benchmark input into a model completion. */

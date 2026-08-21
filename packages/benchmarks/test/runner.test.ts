@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { BenchmarkRunner, aggregate, gsm8kBenchmark } from '../src/index.js'
-import type { ScoreResult } from '../src/index.js'
+import type { Benchmark, BenchmarkSample, ScoreResult } from '../src/index.js'
 
 describe('aggregate', () => {
   it('computes accuracy and a confidence interval', () => {
@@ -87,5 +87,34 @@ describe('BenchmarkRunner', () => {
     })
     expect(result.failedSamples).toBe(1)
     expect(result.perSample[0]!.error).toBe('oops')
+  })
+
+  it('records a scorer failure per sample and continues', async () => {
+    const samples: BenchmarkSample[] = [
+      { id: 'g-0', input: '1', reference: null },
+      { id: 'g-1', input: '2', reference: null },
+      { id: 'g-2', input: '3', reference: null },
+    ]
+    const benchmark: Benchmark = {
+      name: 'g',
+      dataset: { name: 'g', load: () => samples },
+      scorer: {
+        score(sample) {
+          if (sample.id === 'g-1') throw new Error('unsupported instruction')
+          return { sampleId: sample.id, correct: true, score: 1 }
+        },
+      },
+    }
+    const runner = new BenchmarkRunner({ seed: 1 })
+    const result = await runner.run(benchmark, async (input) => input)
+    expect(result.samples).toBe(3)
+    expect(result.correct).toBe(2)
+    expect(result.failedSamples).toBe(1)
+    expect(result.perSample[1]).toMatchObject({
+      sampleId: 'g-1',
+      correct: false,
+      score: 0,
+      error: 'unsupported instruction',
+    })
   })
 })

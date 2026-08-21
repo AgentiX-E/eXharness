@@ -1,5 +1,5 @@
 import { passAtK } from './scorers/pass-k.js'
-import type { CodeExecutor } from './code-executor.js'
+import type { CodeExecutor, CodeExecutionResult } from './code-executor.js'
 
 /**
  * A HumanEval-style coding task (Chen et al., 2021): a function signature and
@@ -89,10 +89,16 @@ export async function evaluateHumanEval(
         continue
       }
       const code = buildHumanEvalCode(sample.prompt, completion, sample.test, sample.entryPoint)
-      const result = await executor.execute(
-        code,
-        options.timeoutMs === undefined ? undefined : { timeoutMs: options.timeoutMs },
-      )
+      let result: CodeExecutionResult
+      try {
+        result = await executor.execute(
+          code,
+          options.timeoutMs === undefined ? undefined : { timeoutMs: options.timeoutMs },
+        )
+      } catch {
+        failedGenerations++
+        continue
+      }
       if (result.exitCode === 0 && !result.timedOut) passed++
     }
     totalN += numSamples

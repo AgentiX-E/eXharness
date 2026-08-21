@@ -25,9 +25,16 @@ export interface HfSource {
   fetch?: HfFetch
   /** Optional bearer token for gated datasets. */
   token?: string
+  /** Maximum retries for transient failures (429/5xx/network). Defaults to 0. */
+  maxRetries?: number
+  /** Base backoff delay in ms; doubles on each retry. Defaults to 500. */
+  retryDelayMs?: number
 }
 
 const DEFAULT_BASE_URL = 'https://datasets-server.huggingface.co'
+
+/** HTTP statuses worth retrying with backoff (transient server/rate-limit errors). */
+const RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504])
 
 interface HfRowsBody {
   rows?: { row: Record<string, unknown> }[]
@@ -39,6 +46,15 @@ function defaultHfFetch(): HfFetch {
 
 function assertPositiveInteger(value: number, name: string): void {
   if (!Number.isInteger(value) || value < 1) throw new Error(`${name} must be a positive integer`)
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+/** Exponential backoff delay for the given attempt index (0-based). */
+function backoffDelay(attempt: number, retryDelayMs: number): number {
+  return retryDelayMs * 2 ** attempt
 }
 
 /**
@@ -57,15 +73,41 @@ export async function fetchHfRows(
   if (!Number.isInteger(offset) || offset < 0) throw new Error('offset must be a non-negative integer')
   const baseUrl = source.baseUrl ?? DEFAULT_BASE_URL
   const fetch = source.fetch ?? defaultHfFetch()
+  const maxRetries = source.maxRetries ?? 0
+  if (!Number.isInteger(maxRetries) || maxRetries < 0) throw new Error('maxRetries must be a non-negative integer')
+  const retryDelayMs = source.retryDelayMs ?? 500
+  if (!Number.isFinite(retryDelayMs) || retryDelayMs < 0) {
+    throw new Error('retryDelayMs must be a non-negative finite number')
+  }
   const params = new URLSearchParams({ dataset, config, split, offset: String(offset), length: String(limit) })
   const url = `${baseUrl}/rows?${params.toString()}`
   const headers: Record<string, string> = {}
   if (source.token !== undefined && source.token.length > 0) headers.Authorization = `Bearer ${source.token}`
 
-  const response = await fetch(url, { headers })
-  if (!response.ok) throw new Error(`fetchHfRows: HTTP ${response.status} for ${url}`)
-  const body = (await response.json()) as HfRowsBody
-  return (body.rows ?? []).map((entry) => entry.row)
+  for (let attempt = 0; ; attempt++) {
+    let response: HfFetchResponse
+    try {
+      response = await fetch(url, { headers })
+    } catch (error) {
+      if (attempt < maxRetries) {
+        await sleep(backoffDelay(attempt, retryDelayMs))
+        continue
+      }
+      throw error
+    }
+
+    if (response.ok) {
+      const body = (await response.json()) as HfRowsBody
+      return (body.rows ?? []).map((entry) => entry.row)
+    }
+
+    if (RETRYABLE_STATUS.has(response.status) && attempt < maxRetries) {
+      await sleep(backoffDelay(attempt, retryDelayMs))
+      continue
+    }
+
+    throw new Error(`fetchHfRows: HTTP ${response.status} for ${url}`)
+  }
 }
 
 /** The option letters used by MMLU's ClassLabel answer indices. */

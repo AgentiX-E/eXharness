@@ -48,7 +48,11 @@ export class BenchmarkRunner {
         perSample.push({ sampleId: sample.id, correct: false, score: 0, error: toErrorMessage(error) })
         continue
       }
-      perSample.push(benchmark.scorer.score(sample, output))
+      try {
+        perSample.push(benchmark.scorer.score(sample, output))
+      } catch (error) {
+        perSample.push({ sampleId: sample.id, correct: false, score: 0, error: toErrorMessage(error) })
+      }
     }
     return aggregate(benchmark.name, perSample, this.seed)
   }

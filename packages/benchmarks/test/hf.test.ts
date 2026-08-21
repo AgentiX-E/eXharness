@@ -77,6 +77,50 @@ describe('fetchHfRows', () => {
       globalThis.fetch = original
     }
   })
+
+  it('retries a transient 429 and succeeds', async () => {
+    let calls = 0
+    const fetch: HfFetch = async () => {
+      calls++
+      if (calls === 1) return { ok: false, status: 429, json: async () => ({}) } as HfFetchResponse
+      return { ok: true, status: 200, json: async () => okBody([{ a: 1 }]) } as HfFetchResponse
+    }
+    const rows = await fetchHfRows({ fetch, maxRetries: 2, retryDelayMs: 1 }, 'd', 'c', 's', 1)
+    expect(rows).toEqual([{ a: 1 }])
+    expect(calls).toBe(2)
+  })
+
+  it('retries a transport (network) error and succeeds', async () => {
+    let calls = 0
+    const fetch: HfFetch = async () => {
+      calls++
+      if (calls === 1) throw new TypeError('fetch failed')
+      return { ok: true, status: 200, json: async () => okBody([{ a: 1 }]) } as HfFetchResponse
+    }
+    const rows = await fetchHfRows({ fetch, maxRetries: 2, retryDelayMs: 1 }, 'd', 'c', 's', 1)
+    expect(rows).toEqual([{ a: 1 }])
+    expect(calls).toBe(2)
+  })
+
+  it('exhausts retries on a persistent 503', async () => {
+    let calls = 0
+    const fetch: HfFetch = async () => {
+      calls++
+      return { ok: false, status: 503, json: async () => ({}) } as HfFetchResponse
+    }
+    await expect(fetchHfRows({ fetch, maxRetries: 2, retryDelayMs: 1 }, 'd', 'c', 's', 1)).rejects.toThrow(/503/)
+    expect(calls).toBe(3)
+  })
+
+  it('does not retry a non-transient 404', async () => {
+    let calls = 0
+    const fetch: HfFetch = async () => {
+      calls++
+      return { ok: false, status: 404, json: async () => ({}) } as HfFetchResponse
+    }
+    await expect(fetchHfRows({ fetch, maxRetries: 3, retryDelayMs: 1 }, 'd', 'c', 's', 1)).rejects.toThrow(/404/)
+    expect(calls).toBe(1)
+  })
 })
 
 describe('loadMmluFromHf', () => {
