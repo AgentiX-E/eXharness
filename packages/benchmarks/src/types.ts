@@ -18,6 +18,8 @@ export interface ScoreResult {
   correct: boolean
   score: number
   details?: Record<string, unknown>
+  /** Human-readable generation failure message when the model call threw. */
+  error?: string
 }
 
 /** Maps a model output for a sample to a score. */
@@ -50,6 +52,8 @@ export interface BenchmarkResult {
   /** 95% confidence interval around the accuracy (percentile bootstrap). */
   confidenceInterval: ConfidenceInterval
   perSample: ScoreResult[]
+  /** Number of samples whose model generation failed (scored as incorrect). */
+  failedSamples: number
 }
 
 /** Generates a model output for a benchmark input. */

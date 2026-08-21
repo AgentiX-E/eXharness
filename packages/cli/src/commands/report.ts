@@ -64,8 +64,9 @@ export async function reportCommand(args: CliArgs, deps: CliDeps): Promise<numbe
   } else {
     deps.out(`Competitive benchmark report (model: ${model})`)
     for (const benchmark of benchmarks) {
+      const failed = benchmark.failedSamples > 0 ? `, failed=${benchmark.failedSamples}` : ''
       deps.out(
-        `  ${benchmark.name}: ${(benchmark.accuracy * 100).toFixed(1)}% (${benchmark.correct}/${benchmark.samples})`,
+        `  ${benchmark.name}: ${(benchmark.accuracy * 100).toFixed(1)}% (${benchmark.correct}/${benchmark.samples}${failed})`,
       )
     }
     const evolution = report.selfEvolution

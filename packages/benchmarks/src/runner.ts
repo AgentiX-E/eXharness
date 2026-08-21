@@ -8,6 +8,7 @@ import type { Benchmark, BenchmarkResult, Generate, ScoreResult } from './types.
 export function aggregate(name: string, perSample: readonly ScoreResult[], seed = 0xb00c): BenchmarkResult {
   const samples = perSample.length
   const correct = perSample.filter((s) => s.correct).length
+  const failedSamples = perSample.filter((s) => s.error !== undefined).length
   const scores = perSample.map((s) => s.score)
   const accuracy = samples === 0 ? 0 : correct / samples
   const meanScore = samples === 0 ? 0 : mean(scores)
@@ -15,7 +16,12 @@ export function aggregate(name: string, perSample: readonly ScoreResult[], seed 
     samples === 0
       ? { estimate: 0, lower: 0, upper: 0, confidence: 0.95 }
       : bootstrapMeanCI(scores, { iterations: 2000, confidence: 0.95, seed })
-  return { name, samples, correct, accuracy, meanScore, confidenceInterval, perSample: [...perSample] }
+  return { name, samples, correct, accuracy, meanScore, confidenceInterval, perSample: [...perSample], failedSamples }
+}
+
+/** Normalise a thrown value to a human-readable message. */
+function toErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
 }
 
 export interface RunnerOptions {
@@ -35,7 +41,13 @@ export class BenchmarkRunner {
     const samples = await benchmark.dataset.load()
     const perSample: ScoreResult[] = []
     for (const sample of samples) {
-      const output = await generate(sample.input)
+      let output: string
+      try {
+        output = await generate(sample.input)
+      } catch (error) {
+        perSample.push({ sampleId: sample.id, correct: false, score: 0, error: toErrorMessage(error) })
+        continue
+      }
       perSample.push(benchmark.scorer.score(sample, output))
     }
     return aggregate(benchmark.name, perSample, this.seed)

@@ -101,6 +101,7 @@ export function humanEvalToBenchmarkResult(result: HumanEvalResult, seed = 0xb00
     sampleId: sample.taskId,
     correct: sample.passed === sample.total,
     score: sample.total === 0 ? 0 : sample.passed / sample.total,
+    ...(sample.failedGenerations > 0 ? { details: { failedGenerations: sample.failedGenerations } } : {}),
   }))
   const samples = result.totalN
   const correct = result.totalC
@@ -118,5 +119,6 @@ export function humanEvalToBenchmarkResult(result: HumanEvalResult, seed = 0xb00
     meanScore: accuracy,
     confidenceInterval,
     perSample,
+    failedSamples: result.failedGenerations ?? 0,
   }
 }

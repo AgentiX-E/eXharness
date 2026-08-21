@@ -86,6 +86,18 @@ describe('reportCommand', () => {
     expect(out.some((line) => line.includes('self-evolution:'))).toBe(true)
   })
 
+  it('flags failed samples in the human-readable summary', async () => {
+    const failing: LlmProvider = {
+      kind: 'mock',
+      async generate() {
+        throw new Error('boom')
+      },
+    }
+    const { deps, out } = harness(failing, { fetch: suiteFetch() })
+    await reportCommand(parseArgs(['report', '--samples=1', '--subjects=algebra', '--trials=2']), deps)
+    expect(out.some((line) => line.includes('failed=1'))).toBe(true)
+  })
+
   it('rejects an invalid --samples value', async () => {
     const { deps } = harness(new MockProvider(), { fetch: suiteFetch() })
     await expect(reportCommand(parseArgs(['report', '--samples=0']), deps)).rejects.toThrow(/positive integer/)

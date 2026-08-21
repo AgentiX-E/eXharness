@@ -90,19 +90,21 @@ describe('humanEvalToBenchmarkResult', () => {
   it('maps pass@1 (numSamples=1) to a uniform BenchmarkResult', () => {
     const result = humanEvalToBenchmarkResult({
       samples: [
-        { taskId: 'HumanEval/0', passed: 1, total: 1 },
-        { taskId: 'HumanEval/1', passed: 0, total: 1 },
+        { taskId: 'HumanEval/0', passed: 1, total: 1, failedGenerations: 0 },
+        { taskId: 'HumanEval/1', passed: 0, total: 1, failedGenerations: 0 },
       ],
       totalN: 2,
       totalC: 1,
       passAt1: 0.5,
       passAtK: 0.5,
       k: 1,
+      failedGenerations: 0,
     })
     expect(result.name).toBe('humaneval')
     expect(result.samples).toBe(2)
     expect(result.correct).toBe(1)
     expect(result.accuracy).toBeCloseTo(0.5)
+    expect(result.failedSamples).toBe(0)
     expect(result.perSample).toHaveLength(2)
     expect(result.confidenceInterval.estimate).toBeCloseTo(0.5)
   })
@@ -115,22 +117,43 @@ describe('humanEvalToBenchmarkResult', () => {
       passAt1: 0,
       passAtK: 0,
       k: 1,
+      failedGenerations: 0,
     })
     expect(result.samples).toBe(0)
     expect(result.accuracy).toBe(0)
+    expect(result.failedSamples).toBe(0)
     expect(result.confidenceInterval.estimate).toBe(0)
   })
 
   it('scores a zero-total sample entry as zero', () => {
     const result = humanEvalToBenchmarkResult({
-      samples: [{ taskId: 'HumanEval/0', passed: 0, total: 0 }],
+      samples: [{ taskId: 'HumanEval/0', passed: 0, total: 0, failedGenerations: 0 }],
       totalN: 0,
       totalC: 0,
       passAt1: 0,
       passAtK: 0,
       k: 1,
+      failedGenerations: 0,
     })
     expect(result.perSample[0]!.score).toBe(0)
     expect(result.perSample[0]!.correct).toBe(true)
+  })
+
+  it('maps failed generations to failedSamples and per-sample details', () => {
+    const result = humanEvalToBenchmarkResult({
+      samples: [
+        { taskId: 'HumanEval/0', passed: 1, total: 1, failedGenerations: 0 },
+        { taskId: 'HumanEval/1', passed: 0, total: 1, failedGenerations: 1 },
+      ],
+      totalN: 2,
+      totalC: 1,
+      passAt1: 0.5,
+      passAtK: 0.5,
+      k: 1,
+      failedGenerations: 1,
+    })
+    expect(result.failedSamples).toBe(1)
+    expect(result.perSample[0]!.details).toBeUndefined()
+    expect(result.perSample[1]!.details).toEqual({ failedGenerations: 1 })
   })
 })

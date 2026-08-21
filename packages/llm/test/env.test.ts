@@ -18,13 +18,35 @@ describe('readLlmEnv', () => {
       baseUrl: 'https://api.deepseek.com/v1',
       apiKey: 'k',
       model: 'deepseek-chat',
+      timeoutMs: 120000,
     })
   })
 
   it('honours explicit values', () => {
     expect(
       readLlmEnv({ EXHARNESS_LLM_BASE_URL: 'http://x/v1', DEEPSEEK_API_KEY: 'k', EXHARNESS_LLM_MODEL: 'm' }),
-    ).toEqual({ baseUrl: 'http://x/v1', apiKey: 'k', model: 'm' })
+    ).toEqual({ baseUrl: 'http://x/v1', apiKey: 'k', model: 'm', timeoutMs: 120000 })
+  })
+
+  it('parses an explicit timeout', () => {
+    expect(readLlmEnv({ DEEPSEEK_API_KEY: 'k', EXHARNESS_LLM_TIMEOUT_MS: '90000' })).toEqual({
+      baseUrl: 'https://api.deepseek.com/v1',
+      apiKey: 'k',
+      model: 'deepseek-chat',
+      timeoutMs: 90000,
+    })
+  })
+
+  it('rejects an invalid timeout', () => {
+    expect(() => readLlmEnv({ DEEPSEEK_API_KEY: 'k', EXHARNESS_LLM_TIMEOUT_MS: 'abc' })).toThrow(
+      /EXHARNESS_LLM_TIMEOUT_MS/,
+    )
+    expect(() => readLlmEnv({ DEEPSEEK_API_KEY: 'k', EXHARNESS_LLM_TIMEOUT_MS: '0' })).toThrow(
+      /EXHARNESS_LLM_TIMEOUT_MS/,
+    )
+    expect(() => readLlmEnv({ DEEPSEEK_API_KEY: 'k', EXHARNESS_LLM_TIMEOUT_MS: '-5' })).toThrow(
+      /EXHARNESS_LLM_TIMEOUT_MS/,
+    )
   })
 
   it('reads from process.env when no env is provided', () => {

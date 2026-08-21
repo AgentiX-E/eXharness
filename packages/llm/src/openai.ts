@@ -13,6 +13,8 @@ export interface OpenAiCompatibleConfig {
   maxRetries?: number
   /** Base backoff delay in ms; doubles on each retry. Defaults to 500. */
   retryDelayMs?: number
+  /** Per-request timeout in ms; an aborted request is a retryable transport error. */
+  timeoutMs?: number
 }
 
 /** HTTP statuses worth retrying with backoff (transient server/rate-limit errors). */
@@ -49,6 +51,7 @@ export class OpenAiCompatibleProvider implements LlmProvider {
 
   private readonly maxRetries: number
   private readonly retryDelayMs: number
+  private readonly timeoutMs?: number
 
   constructor(private readonly config: OpenAiCompatibleConfig) {
     this.maxRetries = config.maxRetries ?? 0
@@ -58,6 +61,10 @@ export class OpenAiCompatibleProvider implements LlmProvider {
     this.retryDelayMs = config.retryDelayMs ?? 500
     if (!Number.isFinite(this.retryDelayMs) || this.retryDelayMs < 0) {
       throw new Error('OpenAiCompatibleProvider: retryDelayMs must be a non-negative finite number')
+    }
+    this.timeoutMs = config.timeoutMs
+    if (this.timeoutMs !== undefined && (!Number.isFinite(this.timeoutMs) || this.timeoutMs <= 0)) {
+      throw new Error('OpenAiCompatibleProvider: timeoutMs must be a positive finite number')
     }
   }
 
@@ -77,6 +84,8 @@ export class OpenAiCompatibleProvider implements LlmProvider {
 
     for (let attempt = 0; ; attempt++) {
       let response: Response
+      const controller = new AbortController()
+      const timer = this.timeoutMs === undefined ? undefined : setTimeout(() => controller.abort(), this.timeoutMs)
       try {
         response = await fetchFn(`${base}/chat/completions`, {
           method: 'POST',
@@ -86,14 +95,17 @@ export class OpenAiCompatibleProvider implements LlmProvider {
             ...this.config.defaultHeaders,
           },
           body: JSON.stringify(body),
+          ...(this.timeoutMs === undefined ? {} : { signal: controller.signal }),
         })
       } catch (error) {
-        // A transport error (ECONNRESET, "fetch failed", …) is retryable.
+        // A transport error (ECONNRESET, "fetch failed", timeout abort, …) is retryable.
         if (attempt < this.maxRetries) {
           await sleep(backoffDelay(attempt, this.retryDelayMs))
           continue
         }
         throw error
+      } finally {
+        if (timer !== undefined) clearTimeout(timer)
       }
 
       if (response.ok) {

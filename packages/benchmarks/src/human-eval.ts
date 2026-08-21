@@ -17,6 +17,8 @@ export interface HumanEvalSampleResult {
   taskId: string
   passed: number
   total: number
+  /** Completions whose generation threw and were therefore never executed. */
+  failedGenerations: number
 }
 
 export interface HumanEvalResult {
@@ -28,6 +30,8 @@ export interface HumanEvalResult {
   passAt1: number
   passAtK: number
   k: number
+  /** Total completions whose generation threw across all tasks. */
+  failedGenerations: number
 }
 
 /**
@@ -75,8 +79,15 @@ export async function evaluateHumanEval(
 
   for (const sample of samples) {
     let passed = 0
+    let failedGenerations = 0
     for (let i = 0; i < numSamples; i++) {
-      const completion = await generate(sample.prompt)
+      let completion: string
+      try {
+        completion = await generate(sample.prompt)
+      } catch {
+        failedGenerations++
+        continue
+      }
       const code = buildHumanEvalCode(sample.prompt, completion, sample.test, sample.entryPoint)
       const result = await executor.execute(
         code,
@@ -86,14 +97,32 @@ export async function evaluateHumanEval(
     }
     totalN += numSamples
     totalC += passed
-    perSample.push({ taskId: sample.taskId, passed, total: numSamples })
+    perSample.push({ taskId: sample.taskId, passed, total: numSamples, failedGenerations })
   }
 
+  const totalFailedGenerations = perSample.reduce((sum, sample) => sum + sample.failedGenerations, 0)
+
   if (totalN === 0) {
-    return { samples: perSample, totalN: 0, totalC: 0, passAt1: 0, passAtK: 0, k }
+    return {
+      samples: perSample,
+      totalN: 0,
+      totalC: 0,
+      passAt1: 0,
+      passAtK: 0,
+      k,
+      failedGenerations: totalFailedGenerations,
+    }
   }
 
   const passAt1 = passAtK(totalN, totalC, 1)
   const passAtKValue = k === 1 ? passAt1 : passAtK(totalN, totalC, k)
-  return { samples: perSample, totalN, totalC, passAt1, passAtK: passAtKValue, k }
+  return {
+    samples: perSample,
+    totalN,
+    totalC,
+    passAt1,
+    passAtK: passAtKValue,
+    k,
+    failedGenerations: totalFailedGenerations,
+  }
 }

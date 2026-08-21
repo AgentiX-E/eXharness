@@ -57,7 +57,8 @@ describe('evaluateHumanEval', () => {
     expect(result.totalC).toBe(1)
     expect(result.passAt1).toBe(1)
     expect(result.passAtK).toBe(1)
-    expect(result.samples[0]).toEqual({ taskId: 'HumanEval/0', passed: 1, total: 1 })
+    expect(result.failedGenerations).toBe(0)
+    expect(result.samples[0]).toEqual({ taskId: 'HumanEval/0', passed: 1, total: 1, failedGenerations: 0 })
   })
 
   it('reports pass@1 = 0 for an incorrect completion', async () => {
@@ -108,5 +109,43 @@ describe('evaluateHumanEval', () => {
     await expect(evaluateHumanEval([sample], executor, async () => '', { numSamples: 1, k: 2 })).rejects.toThrow(
       /k must be <= numSamples/,
     )
+  })
+
+  it('records failed generations and continues when a completion throws', async () => {
+    const executor = new LocalPythonExecutor()
+    let calls = 0
+    const result = await evaluateHumanEval(
+      [sample, { ...sample, taskId: 'HumanEval/1' }],
+      executor,
+      async () => {
+        calls++
+        if (calls === 1) throw new Error('rate limited')
+        return correctCompletion
+      },
+      { numSamples: 1, k: 1 },
+    )
+    expect(result.totalN).toBe(2)
+    expect(result.totalC).toBe(1)
+    expect(result.passAt1).toBe(0.5)
+    expect(result.failedGenerations).toBe(1)
+    expect(result.samples[0]).toEqual({ taskId: 'HumanEval/0', passed: 0, total: 1, failedGenerations: 1 })
+    expect(result.samples[1]).toEqual({ taskId: 'HumanEval/1', passed: 1, total: 1, failedGenerations: 0 })
+  })
+
+  it('reports an all-failed generation with zero pass@k', async () => {
+    const executor = new LocalPythonExecutor()
+    const result = await evaluateHumanEval(
+      [sample],
+      executor,
+      async () => {
+        throw new Error('down')
+      },
+      { numSamples: 1, k: 1 },
+    )
+    expect(result.totalN).toBe(1)
+    expect(result.totalC).toBe(0)
+    expect(result.passAt1).toBe(0)
+    expect(result.failedGenerations).toBe(1)
+    expect(result.samples[0]).toEqual({ taskId: 'HumanEval/0', passed: 0, total: 1, failedGenerations: 1 })
   })
 })
